@@ -54,6 +54,8 @@ MESSAGES: dict[str, tuple[str, str, str]] = {  # (uz, en, ru)
     "lesson_not_allowed": ("Dars faqat tasdiqlangan, rad etilgan yoki tuzatilgan topilmadan taklif qilinadi",
                            "A lesson can only be proposed from a confirmed, rejected or fixed finding",
                            "Урок можно предложить только по подтверждённому, отклонённому или исправленному замечанию"),
+    "bad_host": ("So‘rov manzili (Host) qabul qilinmadi", "The request host is not allowed",
+                 "Адрес запроса (Host) не разрешён"),
     "internal_error": ("Ichki xato yuz berdi", "An internal error occurred", "Произошла внутренняя ошибка"),
 }
 

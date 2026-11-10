@@ -14,7 +14,7 @@ from engcheck.core.db import init_db
 def settings(tmp_path):
     data = tmp_path / "data"
     data.mkdir()
-    return Settings(data_dir=data, db_url=f"sqlite:///{data / 'engcheck.db'}")
+    return Settings(data_dir=data, db_url=f"sqlite:///{data / 'engcheck.db'}", encrypt=False)
 
 
 @pytest.fixture
