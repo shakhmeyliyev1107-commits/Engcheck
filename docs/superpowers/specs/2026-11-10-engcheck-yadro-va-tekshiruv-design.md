@@ -100,6 +100,21 @@ katagi yoki koordinata) olib yuradi.
 | `standards` | id, code, edition, status (active/superseded/withdrawn), license_type |
 | `audit_log` | id, user_id, action, object_type, object_id, details, created_at, prev_hash, hash |
 
+Reja tuzishda qo‘shilgan jadval va maydonlar (R002, R003, R006 va takroriy
+tekshiruv uchun zarur):
+
+| Jadval / maydon | Vazifasi |
+|---|---|
+| `documents.doc_number` | Hujjat raqami (masalan `GP-PID-001`); R006 shu orqali reviziyani solishtiradi |
+| `tag_occurrences` (tag_id, document_id, page_no, location, method) | Teg qaysi hujjatda uchraganini saqlaydi; parametrsiz teglar uchun ham (R002, R003) |
+| `doc_refs` (document_id, ref_doc_number, ref_revision, page_no) | Hujjat ichidagi boshqa hujjatga havolalar (R006) |
+| `sessions` (token_hash, user_id, expires_at) | Kirish sessiyalari |
+| `findings.fingerprint` | Qayta tekshirilganda muhandis qarori (tasdiqlangan / rad etilgan) saqlanib qolishi uchun |
+| `tags.tag_class` ga `pipe_class` qiymati | Material spetsifikatsiyasidagi quvur sinflari (R005) |
+
+Qo‘shimcha qoida **R007**: sonli qiymatning birligi tanilmadi (minor, high) —
+5-bo‘limdagi "birlik noma'lum" topilmasi shu kod bilan chiqadi.
+
 Qiymatlar to‘plami:
 
 - `role`: `admin`, `lead`, `engineer`, `viewer`.
