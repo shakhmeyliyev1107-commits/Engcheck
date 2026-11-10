@@ -24,7 +24,7 @@ Foydalanuvchi ko'rsatmasi (2026-11-10): "o'zing to'g'ri deb bilganday tartib bil
 Doira: Electron qobiq (yupqa: Python xizmatini ishga tushiradi, tasodifiy port, oynani ochadi),
 baza shifrlash (SQLCipher mavjud bo'lsa; bo'lmasa aniq ogohlantirish), loyiha paketini
 eksport/import (imzolangan zip; litsenziyali bilimlar bazasi manbalari va API kalitlari paketga kirmaydi).
-GitHub: foydalanuvchi repozitoriy ulashni va'da qilgan; nomini yozsa — add_repo, push (main va shoxlar).
+GitHub: `origin` = github.com/shakhmeyliyev1107-commits/engcheck (ulangan). Har sikl `main` ga qo'shilgach: `git push -u origin main`; ish shoxini ham yuborib borish.
 
 ## 2-sikldan qolgan mayda kamchiliklar
 - Har so'rovda provayder obyekti qayta quriladi va yopilmaydi; `ai-status` har safar ping qiladi (kesh kerak).
