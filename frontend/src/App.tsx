@@ -7,6 +7,7 @@ import { Admin } from "./pages/Admin";
 import { DocumentView } from "./pages/DocumentView";
 import { FindingDetailPage } from "./pages/FindingDetail";
 import { Findings } from "./pages/Findings";
+import { Kb } from "./pages/Kb";
 import { Login } from "./pages/Login";
 import { ProjectPage } from "./pages/Project";
 import { Projects } from "./pages/Projects";
@@ -98,6 +99,7 @@ export function App() {
               <Route path="/projects/:id/findings" element={<Findings />} />
               <Route path="/findings/:id" element={<FindingDetailPage />} />
               <Route path="/documents/:id" element={<DocumentView />} />
+              <Route path="/kb" element={<Kb />} />
               <Route path="/admin" element={<Admin />} />
               <Route path="*" element={<Navigate to="/projects" replace />} />
             </Routes>

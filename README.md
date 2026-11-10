@@ -5,9 +5,10 @@ tozalash) loyiha hujjatlarini FEED, Detail Design va As-Built bosqichlarida
 tekshiradi: hujjatlardan teg va parametrlarni ajratadi, ularni o‘zaro
 solishtiradi va nomuvofiqliklarni manbasi bilan ko‘rsatadi.
 
-**Bu 1-sikl:** yadro va deterministik tekshiruv dvigateli. AI, bilimlar bazasi
-(RAG), sxema va 3D model keyingi sikllarda — pastdagi "Hali yo‘q" bo‘limiga
-qarang.
+**Hozirgi holat (1- va 2-sikllar):** deterministik tekshiruv dvigateli, AI
+provayderlarini ulash (bulutli va lokal), bilimlar bazasi (RAG), manbali AI
+izoh va AI tekshiruv. Desktop o‘rnatuvchi, sxema va 3D model keyingi sikllarda
+— pastdagi "Hali yo‘q" bo‘limiga qarang.
 
 ## Talablar
 
@@ -146,7 +147,9 @@ yoqadi va o‘chiradi.
 | Hujjat yuklash, tekshiruvni boshlash | | ✓ | ✓ | ✓ |
 | Topilmani tasdiqlash / rad etish | | ✓ | ✓ | ✓ |
 | Qoidalarni boshqarish, loyihani o‘chirish | | | ✓ | ✓ |
-| Foydalanuvchilar, audit jurnali | | | | ✓ |
+| AI izoh so‘rash, manba qo‘shish (tasdiqlanmagan), dars taklif qilish | | ✓ | ✓ | ✓ |
+| Manbani tasdiqlash, loyihada bulutli AI ga ruxsat | | | ✓ | ✓ |
+| Foydalanuvchilar, audit jurnali, AI provayderlari va kalitlar | | | | ✓ |
 
 ### Xavfsizlik
 
@@ -156,6 +159,81 @@ yoqadi va o‘chiradi.
 - **Baza hozircha shifrlanmagan** (oddiy SQLite fayli `ENGCHECK_DATA_DIR`
   ichida). Maxfiy loyihalar uchun papkani disk shifrlash (BitLocker,
   FileVault, LUKS) bilan himoyalang. SQLCipher 3-siklda qo‘shiladi.
+
+## AI va bilimlar bazasi
+
+AI ixtiyoriy: usiz ham barcha qoidalar ishlaydi.
+
+### Provayder ulash
+
+**Boshqaruv → AI provayderlari** (faqat administrator):
+
+| Tur | Nima uchun | Manzil | Kalit |
+|---|---|---|---|
+| Anthropic (Claude) | bulutli; standart model `claude-opus-5-5` | bo‘sh qoldiring | kerak |
+| OpenAI-mos API | OpenAI, OpenRouter, vLLM, LM Studio va shu protokoldagi boshqa xizmatlar | masalan `https://api.openai.com/v1` yoki `http://127.0.0.1:1234/v1` | xizmatga qarab |
+| Ollama | lokal modellar, oflayn | `http://127.0.0.1:11434` | kerak emas |
+
+- **Sinash** tugmasi ulanishni tekshiradi; xato sababi (kalit noto‘g‘ri,
+  ulanib bo‘lmadi va h.k.) ko‘rsatiladi.
+- Bir nechta provayder qo‘shib, **Standart qilish** bilan almashtirasiz.
+- Provayder lokalmi yoki bulutlimi — manzildan aniqlanadi (`localhost`,
+  loopback yoki xususiy tarmoq IP si → lokal). Qo‘lda belgilab bo‘lmaydi.
+- **Kalitlar** OS kalit omborida saqlanadi (`pip install -e "backend[keyring]"`
+  o‘rnatilgan va ombor mavjud bo‘lsa). Aks holda ma'lumotlar papkasidagi
+  shifrlangan `secrets.enc` faylida (kaliti `secret.key`, ruxsat 0600). Fayl
+  varianti baza nusxasi tarqalganda kalitlarni himoya qiladi, lekin butun
+  papkaga kira olgan odamdan emas. Kalit bazaga, audit jurnaliga va
+  interfeysga hech qachon chiqmaydi.
+
+### Onlayn va oflayn rejim
+
+Loyiha sahifasida joriy rejim ko‘rinadi:
+
+- **Bulutli AI har loyiha uchun standart holatda o‘chiq.** Yetakchi muhandis
+  yoki administrator loyiha sahifasida ruxsat beradi.
+- Standart provayder javob bermasa (internet yo‘q), tizim keyingi yoqilgan
+  provayderga — odatda lokal modelga — o‘tadi.
+- Hech biri ishlamasa, sababi ko‘rsatiladi va faqat qoidalar ishlaydi.
+
+### Bilimlar bazasi
+
+**Bilimlar bazasi** sahifasida standart, adabiyot yoki eslatma qo‘shasiz
+(PDF, DOCX, XLSX, TXT, MD yoki matn).
+
+- Har manbada nashr, amal qilish holati (amalda / almashtirilgan / bekor
+  qilingan) va litsenziya turi bor. Bekor qilingan manba qidiruvga kirmaydi;
+  almashtirilgan nashr belgisi bilan chiqadi.
+- **Litsenziyali manba:** faqat 300 belgigacha iqtibos ko‘rsatiladi, fayli
+  yuklab olinmaydi, matni bulutli AI ga yuborilmaydi (faqat nomi, nashri va
+  sahifasi). Standart matnini yuklash huquqi sizda borligiga o‘zingiz
+  javobgarsiz.
+- Muhandis qo‘shgan manba tasdiqlanmaguncha qidiruvda qatnashmaydi;
+  yetakchi muhandis tasdiqlaydi.
+- Qidiruv lokal ishlaydi (BM25). Provayderda embedding modeli sozlangan
+  bo‘lsa, **Embedding indeksini yangilash** dan keyin ma'no bo‘yicha qidiruv
+  ham qo‘shiladi.
+
+### AI nima qiladi
+
+- **AI izoh** (topilma sahifasida): topilma faktlari va bilimlar bazasidan
+  topilgan parchalar asosida tushuntirish. Har havola berilgan parchaga
+  ishora qiladi; berilmagan manbaga havola tashlab yuboriladi. AI taxminlari
+  alohida ro‘yxatda.
+- **AI bilan tekshirish** (loyiha sahifasida "AI bilan" belgisi): AI hujjat
+  matnidan muammo qidiradi. Har AI topilmasi hujjatdan so‘zma-so‘z iqtibos
+  keltirishi shart — iqtibos hujjatda topilmasa, topilma qabul qilinmaydi.
+  Bir tekshiruvda 40 sahifagacha ko‘riladi; qolgani sanab ko‘rsatiladi.
+- AI natijalari doim **"AI taxmini — muhandis tasdiqlamagan"** belgisi va
+  "Past" ishonchlilik bilan chiqadi. AI topilmani tasdiqlamaydi va hujjatni
+  o‘zgartirmaydi.
+- **Dars taklif qilish:** tasdiqlangan, rad etilgan yoki tuzatilgan
+  topilmadan bilimlar bazasiga dars taklif qilasiz; yetakchi muhandis
+  tasdiqlagach, u keyingi AI izohlariga manba bo‘ladi.
+
+Provayderlar soxta server va soxta transport bilan testlangan; haqiqiy
+Anthropic, OpenAI yoki Ollama xizmatiga ulanib sinalmagan — birinchi
+ulashda **Sinash** tugmasidan foydalaning.
 
 ## Testlar
 
@@ -172,7 +250,7 @@ cd frontend && npx playwright test --trace off
 ```
 
 Playwright testlari interfeysni o‘zi qurib, xizmatni vaqtinchalik ma'lumotlar
-papkasi bilan 8799-portda ishga tushiradi.
+papkasi bilan 8799-portda va soxta lokal AI serverini 8796-portda ishga tushiradi.
 
 ## Tuzilma
 
@@ -181,6 +259,8 @@ backend/engcheck/
   core/      modellar, autentifikatsiya, audit jurnali
   ingest/    parserlar, birliklar, teg va parametr ajratish
   review/    qoidalar (R001–R007), dvigatel, uch tilli matnlar
+  ai/        provayderlar, rejim tanlash, AI izoh va AI tekshiruv
+  kb/        bilimlar bazasi: bo'laklash, qidiruv, indekslash
   api/       HTTP API
 frontend/    React interfeysi (uz / en / ru)
 samples/     namunaviy loyiha generatori
@@ -191,8 +271,6 @@ docs/superpowers/   spetsifikatsiya va amalga oshirish rejasi
 
 | Imkoniyat | Sikl |
 |---|---|
-| AI tahlili, provayderni API kaliti bilan ulash, lokal modellar | 2 |
-| Bilimlar bazasi (standartlar, adabiyotlar), RAG | 2 |
 | Desktop o‘rnatuvchi (Electron), baza shifrlash, loyiha paketini eksport/import | 3 |
 | Prinsipial sxema generatori va tahrirlagichi | 4 |
 | 3D joylashuv modeli va uni tahrirlash | 5 |

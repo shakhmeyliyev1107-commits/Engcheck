@@ -10,3 +10,7 @@ export const DEFAULT_DISCIPLINE: Record<string, string> = {
   PFD: "process", PID: "process", DATASHEET: "mechanical", EQUIPMENT_LIST: "mechanical", LINE_LIST: "piping",
   MATERIAL_SPEC: "piping", CALCULATION: "process", HAZOP: "hse", HAZID: "hse", OTHER: "technical",
 };
+export const AI_KINDS = ["anthropic", "openai_compatible", "ollama"];
+export const KB_KINDS = ["standard", "literature", "note"];
+export const KB_STATUSES = ["active", "superseded", "withdrawn"];
+export const KB_LICENSES = ["internal", "open", "licensed"];

@@ -81,7 +81,10 @@ export function Findings() {
               {data.map((f) => (
                 <tr key={f.id} className="clickable" data-testid="finding-row" onClick={() => navigate(`/findings/${f.id}`)}>
                   <td><SeverityBadge value={f.severity} /></td>
-                  <td><Link to={`/findings/${f.id}`} onClick={(e) => e.stopPropagation()}>{f.description}</Link></td>
+                  <td>
+                    <Link to={`/findings/${f.id}`} onClick={(e) => e.stopPropagation()}>{f.description}</Link>
+                    {f.source_type === "ai" && <> <span className="ai-label" data-testid="ai-badge">{t("ai.badge")}</span></>}
+                  </td>
                   <td title={f.rule_title}>{f.rule}</td>
                   <td>{f.documents.join(", ")}</td>
                   <td>{t(`confidence.${f.confidence}` as Key)}</td>

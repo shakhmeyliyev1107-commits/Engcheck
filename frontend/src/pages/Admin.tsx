@@ -1,5 +1,6 @@
 import { type FormEvent, useState } from "react";
 import { api } from "../api";
+import { AiProviders } from "../components/AiProviders";
 import { ErrorNote } from "../components/Layout";
 import { ROLES } from "../constants";
 import { useErrorText, useLoad } from "../hooks";
@@ -68,6 +69,8 @@ export function Admin() {
           </tbody>
         </table>
       </div>
+
+      <AiProviders />
 
       <h2>{t("admin.rules")}</h2>
       <div className="table-wrap">

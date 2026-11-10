@@ -18,6 +18,8 @@ export function ProjectPage() {
   const project = useLoad(() => api.project(id), [id]);
   const dash = useLoad(() => api.dashboard(id), [id]);
   const docs = useLoad(() => api.documents(id), [id]);
+  const ai = useLoad(() => api.aiStatus(id), [id]);
+  const [useAi, setUseAi] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -30,7 +32,7 @@ export function ProjectPage() {
     setRunning(true);
     setError(null);
     try {
-      await api.runReview(id);
+      await api.runReview(id, useAi);
       navigate(`/projects/${id}/findings`);
     } catch (err) {
       setError(errorText(err));
@@ -71,6 +73,9 @@ export function ProjectPage() {
         </div>
         <div className="row">
           {can(user, "upload") && <button onClick={() => setUploading(true)} data-testid="open-upload">{t("project.upload")}</button>}
+          {can(user, "review") && ai.data && ai.data.mode !== "none" && (
+            <label className="check"><input type="checkbox" checked={useAi} onChange={(e) => setUseAi(e.target.checked)} data-testid="use-ai" /> {t("ai.useAi")}</label>
+          )}
           {can(user, "review") && (
             <button className="primary" onClick={run} disabled={running || !docs.data?.length} data-testid="run-review">
               {running ? t("project.running") : t("project.runReview")}
@@ -105,6 +110,17 @@ export function ProjectPage() {
               <div className="num">{d.rules.enabled}/{d.rules.total}</div>
               <div className="lbl">{t("dash.rules")}</div>
             </div>
+            <Link className="card" to="/kb" data-testid="card-kb">
+              <div className="num">{d.kb.sources}</div>
+              <div className="lbl">{t("dash.kb")}</div>
+              {d.kb.pending > 0 && <small>{t("dash.kbPending", { count: d.kb.pending })}</small>}
+            </Link>
+            {d.findings.ai > 0 && (
+              <Link className="card" to={`${findingsUrl}?rule=AI01`} data-testid="card-ai">
+                <div className="num">{d.findings.ai}</div>
+                <div className="lbl">{t("dash.aiFindings")}</div>
+              </Link>
+            )}
           </div>
           <h2>{t("dash.bySeverity")}</h2>
           <div className="sevbar">
@@ -119,11 +135,40 @@ export function ProjectPage() {
               ? t("project.lastRun", { date: new Date(d.last_run.started_at + "Z").toLocaleString(locale === "uz" ? "uz-UZ" : locale) })
               : t("project.neverRun")}
           </p>
-          {d.last_run && <p className="note">{t("project.aiNone")}</p>}
+          {d.last_run && d.last_run.ai_mode === "none" && !d.last_run.ai_note && <p className="note" data-testid="last-run-ai">{t("ai.lastRun.none")}</p>}
+          {d.last_run && d.last_run.ai_mode === "none" && d.last_run.ai_note && (
+            <p className="warn" data-testid="last-run-ai">{t("ai.lastRun.failed", { reason: d.last_run.ai_message ?? d.last_run.ai_note })}</p>
+          )}
+          {d.last_run && d.last_run.ai_mode !== "none" && (
+            <p className="note" data-testid="last-run-ai">
+              {t("ai.lastRun.used", { provider: d.last_run.ai_provider ?? "", pages: d.last_run.ai_stats?.pages_reviewed ?? 0, skipped: d.last_run.ai_stats?.pages_skipped ?? 0 })}
+            </p>
+          )}
           {d.last_run && d.last_run.errors.length > 0 && (
             <p className="warn">{t("project.ruleErrors", { rules: d.last_run.errors.map((e) => e.rule).join(", ") })}</p>
           )}
         </>
+      )}
+
+      {ai.data && (
+        <div className="panel" style={{ marginTop: 14 }} data-testid="ai-status">
+          {ai.data.mode === "none"
+            ? t("ai.mode.none", { reason: ai.data.message ?? ai.data.reason ?? "" })
+            : t(`ai.mode.${ai.data.mode}` as Key, { provider: ai.data.provider ?? "" })}
+          {can(user, "manage_kb") && (
+            <label className="check" style={{ marginTop: 8 }}>
+              <input type="checkbox" checked={ai.data.allow_cloud_ai} data-testid="allow-cloud"
+                     onChange={async (e) => {
+                       try {
+                         await api.setAllowCloud(id, e.target.checked);
+                         ai.reload();
+                       } catch (err) {
+                         setError(errorText(err));
+                       }
+                     }} /> {t("ai.allowCloud")}
+            </label>
+          )}
+        </div>
       )}
 
       <h2 id="documents">{t("project.documents")}</h2>
