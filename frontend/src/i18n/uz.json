@@ -199,7 +199,7 @@
   "ai.allowCloud": "Bu loyiha matnlarini bulutli AI ga yuborishga ruxsat",
   "ai.useAi": "AI bilan",
   "ai.lastRun.none": "Oxirgi tekshiruvda AI ishlatilmagan: topilmalar faqat deterministik qoidalar asosida.",
-  "ai.lastRun.used": "Oxirgi tekshiruvda AI ishlatilgan ({provider}): {pages} sahifa ko‘rildi, {skipped} sahifa chegaradan tashqarida qoldi. AI topilmalari alohida belgilangan.",
+  "ai.lastRun.used": "Oxirgi tekshiruvda AI ishlatilgan ({provider}): {pages} sahifa ko‘rildi; chegaradan tashqarida — {skipped}, qisqartirilgan — {truncated}, javobi o‘qilmagan — {failed}. AI topilmalari alohida belgilangan.",
   "ai.lastRun.failed": "AI so‘ralgan edi, lekin ishlatilmadi: {reason}",
   "ai.badge": "AI taxmini",
   "ai.unconfirmed": "AI taxmini — muhandis tasdiqlamagan",
@@ -256,5 +256,6 @@
   "lesson.sent": "Dars taklif qilindi; tasdiqlashni kutmoqda.",
   "dash.kb": "Bilimlar bazasi manbalari",
   "dash.kbPending": "{count} tasi tasdiqlashni kutmoqda",
-  "dash.aiFindings": "AI topilmalari (tasdiqlanmagan)"
+  "dash.aiFindings": "AI topilmalari (tasdiqlanmagan)",
+  "ai.lastRun.interrupted": "AI tekshiruvi to‘xtab qoldi: {reason}. Shu paytgacha topilganlar saqlandi."
 }

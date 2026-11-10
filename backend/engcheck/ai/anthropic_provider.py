@@ -1,5 +1,6 @@
 """Claude — rasmiy Anthropic SDK orqali."""
 import anthropic
+from anthropic import DefaultHttpxClient
 
 from .base import AiError, ChatResult, Provider, status_to_code
 
@@ -21,7 +22,9 @@ class AnthropicProvider(Provider):
         super().__init__(name, model or DEFAULT_MODEL, base_url)
         self._client = anthropic.Anthropic(api_key=api_key or "missing", base_url=base_url or DEFAULT_URL,   # aniq manzil: ANTHROPIC_BASE_URL muhitidan olinmaydi
                                           
-                                           timeout=180.0, max_retries=1, http_client=http_client)
+                                           timeout=180.0, max_retries=1,
+                                           # yo'naltirishga ergashilmaydi: so'rov ko'rsatilgan manzildan chiqmasin
+                                           http_client=http_client or DefaultHttpxClient(follow_redirects=False))
 
     @property
     def is_local(self) -> bool:
@@ -34,6 +37,10 @@ class AnthropicProvider(Provider):
             raise AiError("unreachable") from exc
         except anthropic.APIStatusError as exc:
             raise AiError(status_to_code(exc.status_code)) from exc
+        except anthropic.APIError as exc:   # javobni o'qib bo'lmadi (JSON emas va h.k.)
+            raise AiError("server") from exc
+        except (TypeError, ValueError, AttributeError) as exc:
+            raise AiError("server") from exc
 
     def chat(self, system: str, user: str, max_tokens: int = 16000) -> ChatResult:
         params: dict = {"model": self.model, "max_tokens": max_tokens, "system": system,
@@ -46,10 +53,17 @@ class AnthropicProvider(Provider):
             response = self._call(lambda: self._client.beta.messages.create(**params))
         else:
             response = self._call(lambda: self._client.messages.create(**params))
-        if response.stop_reason == "refusal":
-            raise AiError("refused")
-        text = "".join(block.text for block in response.content if block.type == "text")
-        return ChatResult(text=text, model=response.model)
+        try:   # 200 kodi bilan kelgan begona javob (proksi sahifasi va h.k.) ham xato sifatida chiqadi
+            if response.stop_reason == "refusal":
+                raise AiError("refused")
+            text = "".join(block.text for block in response.content if block.type == "text")
+            return ChatResult(text=text, model=str(response.model))
+        except AiError:
+            raise
+        except Exception as exc:
+            raise AiError("server") from exc
 
     def ping(self) -> None:
-        self._call(lambda: self._client.models.retrieve(self.model))
+        # Qisqa taymaut, qayta urinishsiz: internet yo'q bo'lsa lokal modelga tez o'tiladi.
+        quick = self._client.with_options(timeout=5.0, max_retries=0)
+        self._call(lambda: quick.models.retrieve(self.model))

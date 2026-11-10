@@ -127,8 +127,9 @@ def test_ai_findings_require_verbatim_quote(db, project, doc_with_text):
         {"quote": "ok", "issue": "Juda qisqa iqtibos", "recommendation": "-", "severity": "minor"},
         {"issue": "Iqtibossiz"}, "satr",
     ])
-    drafts, stats = ai_findings(db, project.id, FakeProvider(replies=[reply]), "uz")
-    assert len(drafts) == 1 and stats == {"pages_reviewed": 1, "pages_skipped": 0, "pages_failed": 0, "rejected": 4}
+    drafts, stats, error = ai_findings(db, project.id, FakeProvider(replies=[reply]), "uz")
+    assert error is None and len(drafts) == 1
+    assert stats == {"pages_reviewed": 1, "pages_skipped": 0, "pages_failed": 0, "pages_truncated": 0, "rejected": 4}
     d = drafts[0]
     assert d.rule_code == "AI01" and d.tag_text == "P-101A" and d.description_key == "ai_text"
     assert d.confidence == "low" and d.severity == "major"
@@ -173,12 +174,12 @@ def test_large_documents_are_capped_and_counted(db, project):
     db.add(DocPage(document_id=d.id, page_no=99, text="   "))
     db.flush()
     p = FakeProvider(replies=["[]"] * 60)
-    _, stats = ai_findings(db, project.id, p, "uz")
+    _, stats, _ = ai_findings(db, project.id, p, "uz")
     assert stats["pages_reviewed"] == 40 and stats["pages_skipped"] == 5 and len(p.calls) == 40
 
 
 def test_bad_json_page_is_counted_not_fatal(db, project, doc_with_text):
-    drafts, stats = ai_findings(db, project.id, FakeProvider(replies=["uzr, bilmayman"]), "uz")
+    drafts, stats, _ = ai_findings(db, project.id, FakeProvider(replies=["uzr, bilmayman"]), "uz")
     assert drafts == [] and stats["pages_failed"] == 1
 
 

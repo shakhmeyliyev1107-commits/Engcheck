@@ -141,11 +141,13 @@ export function ProjectPage() {
           )}
           {d.last_run && d.last_run.ai_mode !== "none" && (
             <p className="note" data-testid="last-run-ai">
-              {t("ai.lastRun.used", { provider: d.last_run.ai_provider ?? "", pages: d.last_run.ai_stats?.pages_reviewed ?? 0, skipped: d.last_run.ai_stats?.pages_skipped ?? 0 })}
+              {t("ai.lastRun.used", { provider: d.last_run.ai_provider ?? "", pages: d.last_run.ai_stats?.pages_reviewed ?? 0, skipped: d.last_run.ai_stats?.pages_skipped ?? 0,
+                                       truncated: d.last_run.ai_stats?.pages_truncated ?? 0, failed: d.last_run.ai_stats?.pages_failed ?? 0 })}
             </p>
           )}
-          {d.last_run && d.last_run.errors.length > 0 && (
-            <p className="warn">{t("project.ruleErrors", { rules: d.last_run.errors.map((e) => e.rule).join(", ") })}</p>
+          {d.last_run?.ai_error_message && <p className="warn" data-testid="ai-interrupted">{t("ai.lastRun.interrupted", { reason: d.last_run.ai_error_message })}</p>}
+          {d.last_run && d.last_run.errors.some((e) => e.rule !== "AI01") && (
+            <p className="warn">{t("project.ruleErrors", { rules: d.last_run.errors.filter((e) => e.rule !== "AI01").map((e) => e.rule).join(", ") })}</p>
           )}
         </>
       )}

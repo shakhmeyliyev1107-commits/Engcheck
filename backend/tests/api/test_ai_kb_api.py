@@ -198,3 +198,19 @@ def test_reindex_reports_when_embeddings_unavailable(client_as, fake_ai):
     _provider(client_as("admin"))
     assert lead.post("/api/kb/reindex", json={}).json()["code"] == "embeddings_unsupported"
     assert client_as("engineer").post("/api/kb/reindex", json={}).status_code == 403
+
+
+@pytest.mark.parametrize("url", ["https://user:PASSWD@host.example/v1", "https://host.example/v1?key=abc", "https://host.example/v1#x"])
+def test_provider_url_with_credentials_or_query_is_rejected(client_as, fake_ai, url):
+    r = _provider(client_as("admin"), kind="openai_compatible", base_url=url)
+    assert r.status_code == 422 and r.json()["code"] == "base_url_invalid"
+
+
+def test_failed_ai_stage_is_explained_in_run_summary(client_as, reviewed, fake_ai):
+    c, pid = reviewed
+    _provider(client_as("admin"))
+    from engcheck.ai.base import AiError
+    fake_ai["replies"]["lokal"] = ["[]", AiError("rate_limit")]
+    r = c.post(f"/api/projects/{pid}/reviews", json={"use_ai": True}).json()
+    assert r["ai_stats"]["pages_reviewed"] == 1 and "chegarasiga yetdi" in r["ai_error_message"]
+    assert len([f for f in c.get(f"/api/projects/{pid}/findings").json() if f["source_type"] == "rule"]) == 8

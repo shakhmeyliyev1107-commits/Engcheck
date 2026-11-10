@@ -49,7 +49,10 @@ def _clean_url(url: str | None, kind: str) -> str | None:
         if kind == "openai_compatible":
             raise ApiError(422, "base_url_required")
         return None
-    if urlparse(url).scheme not in ("http", "https") or not urlparse(url).hostname:
+    parts = urlparse(url)
+    # Login/parol, so'rov satri yoki fragment bo'lgan manzil qabul qilinmaydi: ular bazada va ro'yxatda ko'rinib qoladi.
+    if (parts.scheme not in ("http", "https") or not parts.hostname or parts.username or parts.password
+            or parts.query or parts.fragment):
         raise ApiError(422, "base_url_invalid")
     return url.rstrip("/")
 

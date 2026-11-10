@@ -40,8 +40,10 @@ def _fingerprint(db: Db, draft: Draft) -> str:
     for e in draft.evidence:
         doc = db.get(Document, e.document_id)
         pairs.append(f"{doc.doc_number or doc.filename}={e.value}")
+    # AI topilmasida da'vo matni ham kiradi: bir iqtibosga boshqa da'vo — boshqa topilma.
+    claim = " ".join(str(draft.args.get("issue", "")).split()).casefold() if draft.rule_code == AI_RULE else ""
     key = "|".join([draft.rule_code, draft.tag_text or "", draft.param or "",
-                    draft.description_key, *sorted(pairs)])
+                    draft.description_key, claim, *sorted(pairs)])
     return hashlib.sha256(key.encode()).hexdigest()
 
 
@@ -51,6 +53,10 @@ def _carry_decision(db: Db, project_id: int, run_id: int, finding: Finding) -> N
                         Finding.fingerprint == finding.fingerprint)
                 .order_by(Finding.id.desc()).first())
     if previous is None or previous.status not in CARRIED_STATUSES:
+        return
+    # AI topilmasi hech qachon avvalgi tasdiqni meros olmaydi: uni har safar muhandis tasdiqlaydi.
+    # Faqat rad etish (aynan shu da'vo uchun) ko'chadi — rad etilgan AI taxmini qayta "yangi" bo'lib chiqmasin.
+    if finding.source_type == "ai" and previous.status != FindingStatus.rejected:
         return
     # "Tuzatilgan" deb belgilangan muammo yana topilsa, u tuzatilmagan: tasdiqlangan holatga qaytadi.
     finding.status = (FindingStatus.confirmed if previous.status == FindingStatus.fixed
@@ -83,7 +89,6 @@ def run_review(db: Db, project_id: int, user_id: int | None, resolution=None, lo
     resolution — ai.registry.resolve() natijasi. AI topilmalari alohida belgilanadi
     (source_type="ai", ishonchlilik low) va qoida topilmalariga ta'sir qilmaydi.
     """
-    from ..ai.base import AiError
     from ..ai.review import ai_findings
 
     seed_rules(db)
@@ -113,14 +118,15 @@ def run_review(db: Db, project_id: int, user_id: int | None, resolution=None, lo
         else:
             run.ai_mode, run.ai_provider = resolution.mode, resolution.provider.name
             try:
-                drafts, stats = ai_findings(db, project_id, resolution.provider, locale)
-            except AiError as exc:   # provayder o'chsa, qoida topilmalari saqlanib qoladi
-                errors.append({"rule": AI_RULE, "error": exc.code})
-            else:
-                run.ai_stats = stats
-                for draft in drafts:
-                    _store(db, run, rules[AI_RULE], draft, project_id, locale)
-                    count += 1
+                drafts, stats, error = ai_findings(db, project_id, resolution.provider, locale)
+            except Exception:   # AI bosqichidagi har qanday xato qoida topilmalariga ta'sir qilmaydi
+                drafts, stats, error = [], None, "server"
+            run.ai_stats = stats
+            if error:
+                errors.append({"rule": AI_RULE, "error": error})
+            for draft in drafts:
+                _store(db, run, rules[AI_RULE], draft, project_id, locale)
+                count += 1
     run.errors = errors
     db.flush()
     audit.record(db, user_id, "review.run", "review_run", run.id,

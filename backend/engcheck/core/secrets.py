@@ -7,11 +7,14 @@ ma'lumotlar papkasiga to'liq kira olgan odamdan himoya qilmaydi.
 """
 import json
 import os
+import threading
 from pathlib import Path
 
 from cryptography.fernet import Fernet, InvalidToken
 
 SERVICE = "engcheck"
+_KEY_LOCK = threading.Lock()
+_LOCK = threading.Lock()   # fayl variantida o'qib-o'zgartirib-yozish ketma-ket bajariladi
 
 
 def _keyring_usable():
@@ -37,16 +40,20 @@ class SecretStore:
     def _fernet(self) -> Fernet:
         key_path = self._dir / "secret.key"
         if not key_path.exists():
-            self._write_private(key_path, Fernet.generate_key())
+            with _KEY_LOCK:
+                if not key_path.exists():
+                    self._write_private(key_path, Fernet.generate_key())
         return Fernet(key_path.read_bytes())
 
     @staticmethod
     def _write_private(path: Path, data: bytes) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
-        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        tmp = path.with_name(path.name + ".tmp")
+        fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
         with os.fdopen(fd, "wb") as f:
             f.write(data)
-        os.chmod(path, 0o600)
+        os.chmod(tmp, 0o600)
+        os.replace(tmp, path)   # atomik: o'quvchi hech qachon yarim yozilgan faylni ko'rmaydi
 
     def _load(self) -> dict[str, str]:
         path = self._dir / "secrets.enc"
@@ -65,9 +72,10 @@ class SecretStore:
         if self._keyring:
             self._keyring.set_password(SERVICE, name, value)
             return
-        data = self._load()
-        data[name] = value
-        self._save(data)
+        with _LOCK:
+            data = self._load()
+            data[name] = value
+            self._save(data)
 
     def get(self, name: str) -> str | None:
         if self._keyring:
@@ -81,6 +89,7 @@ class SecretStore:
             except Exception:
                 pass
             return
-        data = self._load()
-        if data.pop(name, None) is not None:
-            self._save(data)
+        with _LOCK:
+            data = self._load()
+            if data.pop(name, None) is not None:
+                self._save(data)

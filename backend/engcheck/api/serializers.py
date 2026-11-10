@@ -90,4 +90,6 @@ def run_out(run, locale: str) -> dict:
     from .errors import ai_reason
     return {"id": run.id, "started_at": run.started_at.isoformat(), "ai_mode": run.ai_mode,
             "ai_provider": run.ai_provider, "ai_note": run.ai_note, "ai_message": ai_reason(run.ai_note, locale),
-            "ai_stats": run.ai_stats, "errors": run.errors}
+            "ai_stats": run.ai_stats, "errors": run.errors,
+            "ai_error_message": next((ai_reason(e.get("error"), locale) for e in run.errors or []
+                                      if e.get("rule") == "AI01"), None)}

@@ -1,7 +1,7 @@
 """OpenAI protokoliga mos har qanday xizmat (OpenAI, OpenRouter, vLLM, LM Studio va h.k.)."""
 import httpx
 
-from .base import AiError, ChatResult, Provider, status_to_code
+from .base import AiError, ChatResult, Provider, is_local_url, status_to_code
 
 
 class HttpProvider(Provider):
@@ -10,7 +10,9 @@ class HttpProvider(Provider):
     def __init__(self, name, base_url, model, embed_model=None, api_key=None, transport=None):
         super().__init__(name, model, (base_url or "").rstrip("/"), embed_model)
         headers = {"Authorization": f"Bearer {api_key}"} if api_key else {}
-        self._http = httpx.Client(headers=headers, transport=transport, timeout=httpx.Timeout(180.0, connect=5.0))
+        # Lokal provayder muhitdagi proksi (HTTP(S)_PROXY) orqali chiqmaydi; yo'naltirishga ergashilmaydi.
+        self._http = httpx.Client(headers=headers, transport=transport, timeout=httpx.Timeout(180.0, connect=5.0),
+                                  trust_env=not is_local_url(self.base_url), follow_redirects=False)
 
     def _request(self, method: str, path: str, payload: dict | None = None, timeout: float | None = None) -> dict:
         try:

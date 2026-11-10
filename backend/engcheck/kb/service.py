@@ -10,7 +10,7 @@ from ..ai.base import AiError, Provider
 from ..config import Settings
 from ..core import audit
 from ..core.auth import Perm, can
-from ..core.models import KbChunk, KbSource, User
+from ..core.models import KbChunk, KbSource, Project, User
 from ..ingest.parsers import ParseError, parse_file
 from .chunking import chunk_pages
 from .index import bm25_rank, cosine_rank, rrf, to_blob
@@ -44,6 +44,7 @@ class Hit:
     excerpt: str
     score: float
     text: str   # to'liq bo'lak — faqat ichki foydalanish uchun, API ga chiqmaydi
+    cloud_ok: bool = True   # matnini bulutli provayderga yuborish mumkinmi
 
 
 def _read_text_file(path: Path) -> str:
@@ -69,6 +70,7 @@ def add_source(db: Db, settings: Settings, user: User | None, title: str, kind: 
                path: Path | None = None, filename: str | None = None, text: str | None = None,
                standard_code: str | None = None, edition: str | None = None, status: str = "active",
                license_type: str = "internal", origin_finding_id: int | None = None,
+               origin_project_id: int | None = None,
                approved: bool | None = None) -> KbSource:
     if kind not in KINDS or status not in STATUSES or license_type not in LICENSES or not (title or "").strip():
         raise KbError("invalid")
@@ -95,6 +97,7 @@ def add_source(db: Db, settings: Settings, user: User | None, title: str, kind: 
                       edition=edition or None, status=status, license_type=license_type,
                       filename=filename, sha256=sha, stored_path=str(stored) if stored else None,
                       approved=approved, origin_finding_id=origin_finding_id,
+                      origin_project_id=origin_project_id,
                       added_by=user.id if user else None,
                       approved_by=user.id if (approved and user) else None)
     source.chunks = [KbChunk(ordinal=i, page_no=page_no, text=chunk) for i, (page_no, chunk) in enumerate(chunks)]
@@ -124,6 +127,20 @@ def _eligible(db: Db) -> list[KbChunk]:
             .options(joinedload(KbChunk.source)).order_by(KbChunk.id).all())
 
 
+def cloud_ok(db: Db, source: KbSource) -> bool:
+    """Manba matnini bulutli provayderga yuborish mumkinmi.
+
+    Litsenziyali matn — hech qachon. Dars loyiha ma'lumotini o'z ichiga oladi, shuning uchun
+    faqat o'sha loyiha bulutli AI ga ruxsat bergan bo'lsa.
+    """
+    if source.license_type == "licensed":
+        return False
+    if source.kind == "lesson":
+        project = db.get(Project, source.origin_project_id) if source.origin_project_id else None
+        return bool(project and project.allow_cloud_ai)
+    return True
+
+
 def _excerpt(chunk: KbChunk) -> str:
     text = chunk.text
     if chunk.source.license_type == "licensed" and len(text) > LICENSED_EXCERPT:
@@ -146,13 +163,13 @@ def search(db: Db, query: str, k: int = 5, provider: Provider | None = None) -> 
     for idx, score in rrf(*rankings)[:k]:
         c, s = chunks[idx], chunks[idx].source
         hits.append(Hit(c.id, s.id, s.title, s.kind, s.standard_code, s.edition, s.status, s.license_type,
-                        c.page_no, _excerpt(c), score, c.text))
+                        c.page_no, _excerpt(c), score, c.text, cloud_ok(db, s)))
     return hits
 
 
 def prompt_text(hit: Hit, for_cloud: bool) -> str | None:
-    """AI ga beriladigan matn. Litsenziyali manba matni bulutli provayderga yuborilmaydi."""
-    if hit.license_type == "licensed" and for_cloud:
+    """AI ga beriladigan matn. Litsenziyali manba va ruxsatsiz loyiha darsi bulutga yuborilmaydi."""
+    if for_cloud and not hit.cloud_ok:
         return None
     return hit.text
 
@@ -162,7 +179,7 @@ def reindex(db: Db, provider: Provider, batch: int = 32) -> int:
     todo = [c for c in db.query(KbChunk).options(joinedload(KbChunk.source)).order_by(KbChunk.id)
             if c.embed_model != provider.embed_model or c.embedding is None]
     if not provider.is_local:
-        todo = [c for c in todo if c.source.license_type != "licensed"]
+        todo = [c for c in todo if cloud_ok(db, c.source)]
     done = 0
     for i in range(0, len(todo), batch):
         part = todo[i:i + batch]
@@ -191,6 +208,9 @@ def propose_lesson(db: Db, settings: Settings, finding, user: User | None, text:
         comment = finding.actions[-1].comment if finding.actions else ""
         text = (f"{description}. {rationale} Engineer decision: {finding.status}."
                 + (f" Comment: {comment}" if comment else "") + f" Recommended correction: {recommendation}")
+    from ..core.models import ReviewRun
     title = render(finding.description_key, finding.args, "uz")[0]
+    run = db.get(ReviewRun, finding.run_id)
     return add_source(db, settings, user, f"Dars: {title}"[:255], "lesson", text=text,
-                      origin_finding_id=finding.id, approved=False)
+                      origin_finding_id=finding.id, origin_project_id=run.project_id if run else None,
+                      approved=False)

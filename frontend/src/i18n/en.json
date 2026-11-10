@@ -199,7 +199,7 @@
   "ai.allowCloud": "Allow this project's text to be sent to cloud AI",
   "ai.useAi": "With AI",
   "ai.lastRun.none": "AI was not used in the last review: findings come from deterministic rules only.",
-  "ai.lastRun.used": "AI was used in the last review ({provider}): {pages} page(s) reviewed, {skipped} left out by the limit. AI findings are marked separately.",
+  "ai.lastRun.used": "AI was used in the last review ({provider}): {pages} page(s) reviewed; left out by the limit — {skipped}, truncated — {truncated}, unreadable replies — {failed}. AI findings are marked separately.",
   "ai.lastRun.failed": "AI was requested but not used: {reason}",
   "ai.badge": "AI estimate",
   "ai.unconfirmed": "AI estimate — not confirmed by an engineer",
@@ -256,5 +256,6 @@
   "lesson.sent": "Lesson proposed; awaiting approval.",
   "dash.kb": "Knowledge-base sources",
   "dash.kbPending": "{count} awaiting approval",
-  "dash.aiFindings": "AI findings (unconfirmed)"
+  "dash.aiFindings": "AI findings (unconfirmed)",
+  "ai.lastRun.interrupted": "The AI review stopped early: {reason}. Findings made up to that point were kept."
 }
