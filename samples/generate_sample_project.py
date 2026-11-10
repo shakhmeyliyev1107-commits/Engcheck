@@ -115,7 +115,7 @@ def _datasheet_v101(path: Path) -> None:
     rows = [
         ["Document No.", "GP-DS-V101"], ["Revision", "A"], ["Tag No", "V-101"],
         ["Service", "Amine Contactor"],
-        ["Design Pressure", "10 barg"],          # ataylab: P&ID va ro'yxatda 16 barg
+        ["Design Pressure", "14 barg"],          # ataylab: P&ID va ro'yxatda 16 barg
         ["Operating Pressure", "174 psig"],      # 12 barg ga teng — topilma bo'lmasligi kerak
         ["Design Temperature", "120 °C"], ["Operating Temperature", "60 °C"],
         ["Material", "CS"],

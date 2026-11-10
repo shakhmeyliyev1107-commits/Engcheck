@@ -22,3 +22,27 @@ def db(settings):
     factory = init_db(settings.db_url)
     with factory() as session:
         yield session
+
+
+@pytest.fixture
+def sample_docs(tmp_path):
+    from generate_sample_project import generate
+    return generate(tmp_path / "sample")
+
+
+@pytest.fixture
+def project(db):
+    from engcheck.core.models import Project, Stage
+    p = Project(name="Gaz tozalash", industry="gas_processing", stage=Stage.DD)
+    db.add(p)
+    db.flush()
+    return p
+
+
+@pytest.fixture
+def ingest_sample(db, settings, project, sample_docs):
+    """Namunaviy loyihaning barcha hujjatlarini yuklaydi; {doc_number: Document}."""
+    from engcheck.ingest.service import ingest_file
+    return {d.doc_number: ingest_file(db, settings, project.id, None, d.path, d.path.name,
+                                      d.doc_type, d.discipline, d.doc_number, d.revision)
+            for d in sample_docs}

@@ -236,7 +236,7 @@ ochiladi). Til almashtirgich: uz/en/ru.
 
   | # | Xato | Kutilgan qoida |
   |---|---|---|
-  | 1 | V-101 loyiha bosimi: P&ID 16 barg, datasheet 10 barg | R001 |
+  | 1 | V-101 loyiha bosimi: P&ID 16 barg, datasheet 14 barg | R001 |
   | 2 | P-101A quvvati: equipment list 45 kW, datasheet 55 kW | R001 |
   | 3 | E-102 P&ID da bor, equipment listda yo‘q | R002 |
   | 4 | 6"-AM-1004-A1A line listda bor, P&ID da yo‘q | R002 |

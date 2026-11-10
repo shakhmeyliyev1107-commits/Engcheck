@@ -27,7 +27,7 @@ def test_seeded_values_present(tmp_path):
     ex = _extract_all(tmp_path)
     assert _value(ex["GP-PID-001"], "V-101", "design_pressure") == 1600.0
     assert _value(ex["GP-EQL-001"], "V-101", "design_pressure") == 1600.0
-    assert _value(ex["GP-DS-V101"], "V-101", "design_pressure") == 1000.0
+    assert _value(ex["GP-DS-V101"], "V-101", "design_pressure") == 1400.0
     assert _value(ex["GP-EQL-001"], "P-101A", "power") == 45.0
     assert _value(ex["GP-DS-P101"], "P-101A", "power") == 55.0
     assert _value(ex["GP-EQL-001"], "V-102", "design_pressure") == 500.0
