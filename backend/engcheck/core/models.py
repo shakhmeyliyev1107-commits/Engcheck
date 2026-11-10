@@ -240,6 +240,7 @@ class ReviewRun(Base):
     errors: Mapped[list] = mapped_column(JSON, default=list)
     ai_provider: Mapped[str | None] = mapped_column(String(80), nullable=True)
     ai_note: Mapped[str | None] = mapped_column(String(80), nullable=True)   # AI ishlatilmagan sabab kodi
+    ai_stats: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
 
 class Finding(Base):

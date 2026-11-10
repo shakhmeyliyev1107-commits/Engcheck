@@ -101,7 +101,7 @@ def test_dashboard_counts(reviewed):
     assert d["findings"]["open"] == 7 and d["findings"]["open_critical"] == 1
     assert d["findings"]["confirmed_unfixed"] == 1
     assert d["last_run"]["ai_mode"] == "none" and d["last_run"]["errors"] == []
-    assert d["rules"] == {"enabled": 7, "total": 7}
+    assert d["rules"] == {"enabled": 8, "total": 8}
 
 
 def test_dashboard_before_any_review(client_as):
