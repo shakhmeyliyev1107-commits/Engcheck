@@ -23,15 +23,17 @@ class Perm(StrEnum):
     manage_rules = "manage_rules"
     delete_project = "delete_project"
     manage_users = "manage_users"
+    manage_kb = "manage_kb"
+    manage_ai = "manage_ai"
 
 
 _ENGINEER = {Perm.view, Perm.upload, Perm.review, Perm.decide}
-_LEAD = _ENGINEER | {Perm.manage_rules, Perm.delete_project}
+_LEAD = _ENGINEER | {Perm.manage_rules, Perm.delete_project, Perm.manage_kb}
 _MATRIX: dict[Role, set[Perm]] = {
     Role.viewer: {Perm.view},
     Role.engineer: _ENGINEER,
     Role.lead: _LEAD,
-    Role.admin: _LEAD | {Perm.manage_users},
+    Role.admin: _LEAD | {Perm.manage_users, Perm.manage_ai},
 }
 
 

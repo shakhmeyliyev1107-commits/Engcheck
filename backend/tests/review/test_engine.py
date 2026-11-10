@@ -24,7 +24,7 @@ def test_seed_rules_is_idempotent(db):
     seed_rules(db)
     seed_rules(db)
     rules = db.query(Rule).order_by(Rule.code).all()
-    assert [r.code for r in rules] == ["R001", "R002", "R003", "R004", "R005", "R006", "R007"]
+    assert [r.code for r in rules] == ["AI01", "R001", "R002", "R003", "R004", "R005", "R006", "R007"]
     assert all(r.title_uz and r.title_en and r.title_ru and r.enabled for r in rules)
 
 

@@ -7,9 +7,11 @@ from fastapi.responses import FileResponse, JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from ..config import Settings
+from ..ai.registry import build
 from ..core.db import init_db
-from . import (routes_audit, routes_auth, routes_dashboard, routes_documents, routes_findings,
-               routes_projects, routes_reviews)
+from ..core.secrets import SecretStore
+from . import (routes_ai, routes_audit, routes_auth, routes_dashboard, routes_documents, routes_findings,
+               routes_kb, routes_projects, routes_reviews)
 from .deps import locale_of
 from .errors import MESSAGES, ApiError, localize
 
@@ -26,9 +28,11 @@ def create_app(settings: Settings, frontend_dist: Path | None = FRONTEND_DIST) -
     app = FastAPI(title="EngCheck", docs_url="/api/docs", openapi_url="/api/openapi.json")
     app.state.settings = settings
     app.state.session_factory = init_db(settings.db_url)
+    app.state.secrets = SecretStore(settings.data_dir)
+    app.state.provider_factory = build   # testlarda soxta provayder bilan almashtiriladi
 
     for module in (routes_auth, routes_projects, routes_documents, routes_reviews, routes_findings,
-                   routes_dashboard, routes_audit):
+                   routes_dashboard, routes_audit, routes_ai, routes_kb):
         app.include_router(module.router, prefix="/api")
 
     @app.exception_handler(ApiError)

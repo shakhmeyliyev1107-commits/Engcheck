@@ -6,6 +6,7 @@ import { ErrorNote } from "../components/Layout";
 import { useErrorText, useLoad } from "../hooks";
 import { type Key, useI18n } from "../i18n";
 import { can, useSession } from "../session";
+import { sourceRef } from "./Kb";
 
 // Holat bo'yicha mumkin bo'lgan amallar (xizmatdagi o'tishlar jadvali bilan bir xil).
 const ACTIONS: Record<string, string[]> = {
@@ -25,6 +26,9 @@ export function FindingDetailPage() {
   const [comment, setComment] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [asking, setAsking] = useState(false);
+  const [lesson, setLesson] = useState("");
+  const [lessonSent, setLessonSent] = useState(false);
   const f = loaded.data;
 
   const act = async (action: string) => {
@@ -41,6 +45,21 @@ export function FindingDetailPage() {
     }
   };
 
+  const guard = async (fn: () => Promise<unknown>) => {
+    setError(null);
+    try {
+      await fn();
+      loaded.reload();
+    } catch (err) {
+      setError(errorText(err));
+    }
+  };
+  const askAi = async () => {
+    setAsking(true);
+    await guard(() => api.requestAiNote(id));
+    setAsking(false);
+  };
+
   if (!f) return <ErrorNote text={loaded.error} />;
   const fmt = (iso: string) => new Date(iso + "Z").toLocaleString(locale === "uz" ? "uz-UZ" : locale);
   return (
@@ -53,12 +72,13 @@ export function FindingDetailPage() {
         <SeverityBadge value={f.severity} />
         <StatusBadge value={f.status} />
         <span className="badge">{f.rule} — {f.rule_title}</span>
+        {f.source_type === "ai" && <span className="ai-label">{t("ai.unconfirmed")}</span>}
       </div>
       <div className="grid2">
         <div className="panel">
           <dl className="kv">
             <dt>{t("finding.rationale")}</dt><dd>{f.rationale}</dd>
-            <dt>{t("finding.source")}</dt><dd>{f.source}<br /><small className="muted">{t("finding.sourceRule")}</small></dd>
+            <dt>{t("finding.source")}</dt><dd>{f.source}<br /><small className="muted">{t(f.source_type === "ai" ? "ai.sourceAi" : "finding.sourceRule")}</small></dd>
             <dt>{t("findings.confidence")}</dt><dd>{t(`confidence.${f.confidence}` as Key)}</dd>
             <dt>{t("finding.recommendation")}</dt><dd>{f.recommendation}</dd>
           </dl>
@@ -98,6 +118,55 @@ export function FindingDetailPage() {
           ))}
         </div>
       </div>
+      <div className="row spread">
+        <h2>{t("ai.notes")}</h2>
+        {can(user, "review") && <button onClick={askAi} disabled={asking} data-testid="ask-ai">{asking ? t("ai.requesting") : t("ai.requestNote")}</button>}
+      </div>
+      {f.ai_notes.length === 0 && <p className="muted">{t("ai.noNotes")}</p>}
+      {f.ai_notes.map((n) => (
+        <div className="ai-box" key={n.id} data-testid="ai-note">
+          <span className="ai-label">{t("ai.unconfirmed")}</span>{" "}
+          <span className="badge" data-testid="ai-note-status">{t(`ai.note.${n.status}` as Key)}</span>{" "}
+          <small className="muted">{n.provider} · {n.model} · {t(n.ai_mode === "local" ? "ai.local" : "ai.cloud")} · {fmt(n.created_at)}</small>
+          <p style={{ whiteSpace: "pre-wrap" }}>{n.text}</p>
+          {n.assumptions.length > 0 && (
+            <>
+              <strong>{t("ai.assumptions")}</strong>
+              <ul>{n.assumptions.map((a, i) => <li key={i}>{a}</li>)}</ul>
+            </>
+          )}
+          <strong>{t("ai.citations")}</strong>
+          {n.citations.length === 0 && <p className="muted">{t("ai.noCitations")}</p>}
+          {n.citations.map((c) => (
+            <div className="cite" key={c.key} data-testid="ai-citation">
+              <strong>[{c.key}] {sourceRef(c)}</strong>, {t("kb.page", { page: c.page_no })}{" "}
+              {c.status !== "active" && <span className="badge parse-error">{t(`kb.status.${c.status}` as Key)}</span>}
+              <div className="muted">{c.excerpt}</div>
+            </div>
+          ))}
+          {can(user, "decide") && n.status === "proposed" && (
+            <div className="row" style={{ marginTop: 8 }}>
+              <button onClick={() => void guard(() => api.decideAiNote(n.id, "accepted"))} data-testid="ai-accept">{t("ai.accept")}</button>
+              <button onClick={() => void guard(() => api.decideAiNote(n.id, "rejected"))}>{t("ai.rejectNote")}</button>
+            </div>
+          )}
+        </div>
+      ))}
+
+      {can(user, "decide") && ["confirmed", "rejected", "fixed"].includes(f.status) && (
+        <div className="panel" style={{ marginTop: 16 }}>
+          <strong>{t("lesson.title")}</strong>
+          <p className="muted">{t("lesson.hint")}</p>
+          {lessonSent ? <p className="note" data-testid="lesson-sent">{t("lesson.sent")}</p> : (
+            <>
+              <textarea value={lesson} onChange={(e) => setLesson(e.target.value)} placeholder={t("lesson.placeholder")} data-testid="lesson-text" />
+              <button style={{ marginTop: 8 }} data-testid="lesson-submit"
+                      onClick={() => void guard(async () => { await api.proposeLesson(id, lesson); setLessonSent(true); })}>{t("lesson.submit")}</button>
+            </>
+          )}
+        </div>
+      )}
+
       <h2>{t("finding.evidence")}</h2>
       <div className="table-wrap">
         <table>

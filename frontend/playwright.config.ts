@@ -11,13 +11,16 @@ export default defineConfig({
   timeout: 60_000,
   reporter: [["list"]],
   use: { baseURL: `http://127.0.0.1:${PORT}`, locale: "uz-UZ" },
-  webServer: {
-    command:
-      `bash -c "rm -rf ${TMP} && mkdir -p ${TMP} && npm run build --silent && ` +
-      `python ../samples/generate_sample_project.py ${TMP}/sample > /dev/null && ` +
-      `cd ../backend && ENGCHECK_DATA_DIR=../frontend/${TMP}/data ENGCHECK_PORT=${PORT} python -m engcheck"`,
-    url: `http://127.0.0.1:${PORT}/api/setup`,
-    reuseExistingServer: false,
-    timeout: 120_000,
-  },
+  webServer: [
+    { command: "python e2e/fake_llm.py 8796", url: "http://127.0.0.1:8796/v1/models", reuseExistingServer: false },
+    {
+      command:
+        `bash -c "rm -rf ${TMP} && mkdir -p ${TMP} && npm run build --silent && ` +
+        `python ../samples/generate_sample_project.py ${TMP}/sample > /dev/null && ` +
+        `cd ../backend && ENGCHECK_DATA_DIR=../frontend/${TMP}/data ENGCHECK_PORT=${PORT} python -m engcheck"`,
+      url: `http://127.0.0.1:${PORT}/api/setup`,
+      reuseExistingServer: false,
+      timeout: 120_000,
+    },
+  ],
 });

@@ -45,8 +45,20 @@ RULE_TITLES = {
              "Класс трубопровода не определён в спецификации"),
     "R006": ("Eskirgan reviziyaga havola", "Reference to a superseded revision",
              "Ссылка на устаревшую ревизию"),
+    "AI01": ("AI tekshiruvi (tasdiqlanmagan)", "AI review (unconfirmed)", "Проверка ИИ (не подтверждено)"),
     "R007": ("O‘lchov birligi tanilmadi", "Unit of measure not recognised",
              "Единица измерения не распознана"),
+}
+
+AI_SOURCE = {
+    "uz": "AI xulosasi (hujjat matni asosida) — muhandis tasdiqlamagan",
+    "en": "AI conclusion (from the document text) — not confirmed by an engineer",
+    "ru": "Вывод ИИ (по тексту документа) — не подтверждён инженером",
+}
+AI_RATIONALE = {
+    "uz": "{doc} hujjatidan iqtibos: «{quote}». Bu AI xulosasi; muhandis tekshirmaguncha fakt deb qabul qilinmaydi.",
+    "en": "Quote from {doc}: “{quote}”. This is an AI conclusion; it is not a fact until an engineer has checked it.",
+    "ru": "Цитата из документа {doc}: «{quote}». Это вывод ИИ; он не считается фактом, пока его не проверит инженер.",
 }
 
 INTERNAL_SOURCE = {
@@ -172,6 +184,8 @@ TEMPLATES: dict[str, dict[str, tuple[str, str, str]]] = {
 def render(description_key: str, args: dict, locale: str) -> tuple[str, str, str]:
     """(tavsif, texnik izoh, tavsiya) berilgan tilda; noma'lum til -> uz."""
     loc = locale if locale in LOCALES else "uz"
+    if description_key == "ai_text":   # AI matni yaratilgan tilida qoladi; faqat izoh qolipi tarjima qilinadi
+        return args["issue"], AI_RATIONALE[loc].format(**args), args["recommendation"]
     names, doc_types = PARAM_NAMES[loc], DOC_TYPE_NAMES[loc]
     values = dict(args)
     if "param" in args:

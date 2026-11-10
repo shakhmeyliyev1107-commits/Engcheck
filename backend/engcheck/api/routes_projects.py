@@ -51,6 +51,20 @@ def read_project(project_id: int, _: User = Depends(require(Perm.view)), db: Db 
     return project_out(get_project(db, project_id))
 
 
+class ProjectPatch(BaseModel):
+    allow_cloud_ai: bool
+
+
+@router.patch("/projects/{project_id}")
+def update_project(project_id: int, body: ProjectPatch, user: User = Depends(require(Perm.manage_kb)),
+                   db: Db = Depends(get_db)):
+    """Loyiha matnlarini bulutli AI ga yuborishga ruxsat (yetakchi muhandis yoki administrator)."""
+    project = get_project(db, project_id)
+    project.allow_cloud_ai = body.allow_cloud_ai
+    audit.record(db, user.id, "project.update", "project", project.id, {"allow_cloud_ai": body.allow_cloud_ai})
+    return project_out(project)
+
+
 @router.delete("/projects/{project_id}", status_code=204)
 def delete_project(project_id: int, request: Request,
                    user: User = Depends(require(Perm.delete_project)), db: Db = Depends(get_db)):

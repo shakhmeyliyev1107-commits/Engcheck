@@ -41,6 +41,7 @@ export function Layout({ children }: { children: ReactNode }) {
         </div>
         <nav>
           <NavLink to="/projects">{t("nav.projects")}</NavLink>
+          <NavLink to="/kb">{t("nav.kb")}</NavLink>
           {can(user, "manage_users") && <NavLink to="/admin">{t("nav.admin")}</NavLink>}
         </nav>
         <div className="sidebar-foot">

@@ -6,12 +6,16 @@ from sqlalchemy.orm import Session as Db
 
 from ..core import audit
 from ..core.auth import Perm
-from ..core.models import (DocType, Document, Finding, FindingAction, FindingEvidence, FindingStatus, ReviewRun, Rule,
+from ..ai.assist import AssistError, explain_finding
+from ..core.models import (DocType, FindingAiNote, Document, Finding, FindingAction, FindingEvidence, FindingStatus, ReviewRun, Rule,
                            Severity, User)
 from .deps import get_db, locale_of, require
 from .errors import ApiError
 from .routes_projects import get_project
-from .serializers import finding_out
+from ..kb.service import KbError, propose_lesson
+from .errors import ai_reason
+from .routes_ai import resolve_for
+from .serializers import ai_note_out, finding_out, kb_source_out
 
 router = APIRouter()
 S = FindingStatus
@@ -35,8 +39,11 @@ def latest_run(db: Db, project_id: int) -> ReviewRun | None:
 
 
 def _detail(db: Db, finding: Finding, locale: str) -> dict:
-    out = finding_out(finding, locale, detail=True, users={u.id: u.login for u in db.query(User)})
+    users = {u.id: u.login for u in db.query(User)}
+    out = finding_out(finding, locale, detail=True, users=users)
     out["project_id"] = db.get(ReviewRun, finding.run_id).project_id
+    notes = db.query(FindingAiNote).filter_by(finding_id=finding.id).order_by(FindingAiNote.id.desc())
+    out["ai_notes"] = [ai_note_out(n, users) for n in notes]
     return out
 
 
@@ -104,3 +111,50 @@ def act(finding_id: int, body: ActionBody, request: Request,
     audit.record(db, user.id, f"finding.{body.action}", "finding", finding.id,
                  {"from": previous, "to": str(target), "comment": comment})
     return _detail(db, finding, locale_of(request))
+
+
+class DecisionBody(BaseModel):
+    decision: Literal["accepted", "rejected"]
+
+
+class LessonBody(BaseModel):
+    text: str | None = None
+
+
+@router.post("/findings/{finding_id}/ai-notes", status_code=201)
+def request_ai_note(finding_id: int, request: Request, user: User = Depends(require(Perm.review)),
+                    db: Db = Depends(get_db)):
+    """Topilmaga AI izohi so'raydi. Izoh 'proposed' holatida saqlanadi; topilma holati o'zgarmaydi."""
+    finding = _get(db, finding_id)
+    project = db.get(ReviewRun, finding.run_id)
+    from ..core.models import Project
+    resolution = resolve_for(request, db, db.get(Project, project.project_id))
+    locale = locale_of(request)
+    try:
+        note = explain_finding(db, finding, user, locale, resolution)
+    except AssistError as exc:
+        if exc.code == "bad_response":
+            raise ApiError(502, "ai_bad_response") from exc
+        raise ApiError(503, "ai_unavailable", reason=ai_reason(exc.code, locale)) from exc
+    return ai_note_out(note, {user.id: user.login})
+
+
+@router.post("/ai-notes/{note_id}/decision")
+def decide_ai_note(note_id: int, body: DecisionBody, user: User = Depends(require(Perm.decide)),
+                   db: Db = Depends(get_db)):
+    note = db.get(FindingAiNote, note_id)
+    if note is None:
+        raise ApiError(404, "not_found")
+    note.status, note.decided_by = body.decision, user.id
+    audit.record(db, user.id, f"ai_note.{body.decision}", "ai_note", note.id, {"finding_id": note.finding_id})
+    return ai_note_out(note, {u.id: u.login for u in db.query(User)})
+
+
+@router.post("/findings/{finding_id}/lesson", status_code=201)
+def lesson(finding_id: int, body: LessonBody, request: Request, user: User = Depends(require(Perm.decide)),
+           db: Db = Depends(get_db)):
+    try:
+        source = propose_lesson(db, request.app.state.settings, _get(db, finding_id), user, body.text)
+    except KbError as exc:
+        raise ApiError(409, "lesson_not_allowed") from exc
+    return kb_source_out(source, {user.id: user.login})

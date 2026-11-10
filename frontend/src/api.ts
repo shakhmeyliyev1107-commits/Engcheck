@@ -66,7 +66,7 @@ async function json<T>(method: string, path: string, body?: unknown): Promise<T>
 }
 
 export interface User { id: number; login: string; role: string; locale: string; is_active: boolean; permissions: string[] }
-export interface Project { id: number; name: string; industry: string; stage: string; created_at: string }
+export interface Project { id: number; name: string; industry: string; stage: string; created_at: string; allow_cloud_ai: boolean }
 export interface Doc {
   id: number; project_id: number; filename: string; doc_type: string; discipline: string;
   doc_number: string | null; revision: string | null; parse_status: string; parse_message: string | null; superseded: boolean;
@@ -82,11 +82,19 @@ export interface Finding {
 }
 export interface Evidence { document_id: number; doc_number: string | null; filename: string; doc_type: string; revision: string | null; page_no: number; location: string; value: string }
 export interface Action { action: string; comment: string; user: string | null; created_at: string }
-export interface FindingDetail extends Finding { project_id: number; rationale: string; recommendation: string; source: string; evidence: Evidence[]; actions: Action[] }
+export interface Citation { key: string; source_id: number; title: string; standard_code: string | null; edition: string | null; status: string; license_type: string; page_no: number; excerpt: string }
+export interface AiNote { id: number; provider: string; model: string; ai_mode: string; text: string; assumptions: string[]; citations: Citation[]; status: string; decided_by: string | null; created_at: string }
+export interface RunInfo { id: number; started_at: string; ai_mode: string; ai_provider: string | null; ai_note: string | null; ai_message: string | null; ai_stats: { pages_reviewed: number; pages_skipped: number; pages_failed: number; pages_truncated: number } | null; ai_error_message: string | null; errors: { rule: string; error: string }[] }
+export interface AiProvider { id: number; name: string; kind: string; base_url: string | null; model: string; embed_model: string | null; enabled: boolean; is_default: boolean; is_local: boolean; has_key: boolean }
+export interface AiStatus { mode: string; provider: string | null; reason: string | null; message: string | null; allow_cloud_ai: boolean }
+export interface KbSource { id: number; title: string; kind: string; standard_code: string | null; edition: string | null; status: string; license_type: string; filename: string | null; approved: boolean; added_by: string | null; chunks: number }
+export interface KbHit { chunk_id: number; source_id: number; title: string; kind: string; standard_code: string | null; edition: string | null; status: string; license_type: string; page_no: number; excerpt: string }
+export interface FindingDetail extends Finding { project_id: number; ai_notes: AiNote[]; rationale: string; recommendation: string; source: string; evidence: Evidence[]; actions: Action[] }
 export interface Dashboard {
   documents: { total: number; by_type: Record<string, number>; by_status: Record<string, number> };
-  findings: { total: number; by_severity: Record<string, number>; by_status: Record<string, number>; open: number; open_critical: number; confirmed_unfixed: number };
-  last_run: { id: number; started_at: string; ai_mode: string; errors: { rule: string; error: string }[] } | null;
+  findings: { total: number; by_severity: Record<string, number>; by_status: Record<string, number>; open: number; open_critical: number; confirmed_unfixed: number; ai: number };
+  last_run: RunInfo | null;
+  kb: { sources: number; pending: number };
   rules: { enabled: number; total: number };
 }
 export interface Rule { code: string; title: string; severity: string; enabled: boolean; source: string }
@@ -117,7 +125,24 @@ export const api = {
     return json<Doc>("POST", `/projects/${projectId}/documents`, form);
   },
   fileBlob: async (id: number) => (await request("GET", `/documents/${id}/file`)).blob(),
-  runReview: (id: number) => json<{ id: number }>("POST", `/projects/${id}/reviews`),
+  runReview: (id: number, useAi = false) => json<RunInfo>("POST", `/projects/${id}/reviews`, { use_ai: useAi }),
+  setAllowCloud: (id: number, value: boolean) => json<Project>("PATCH", `/projects/${id}`, { allow_cloud_ai: value }),
+  aiStatus: (id: number) => json<AiStatus>("GET", `/projects/${id}/ai-status`),
+  aiProviders: () => json<AiProvider[]>("GET", "/ai/providers"),
+  createAiProvider: (body: Record<string, string | null>) => json<AiProvider>("POST", "/ai/providers", body),
+  updateAiProvider: (id: number, body: Record<string, unknown>) => json<AiProvider>("PATCH", `/ai/providers/${id}`, body),
+  deleteAiProvider: (id: number) => json<void>("DELETE", `/ai/providers/${id}`),
+  defaultAiProvider: (id: number) => json<AiProvider>("POST", `/ai/providers/${id}/default`),
+  testAiProvider: (id: number) => json<{ ok: boolean; error: string | null; message: string | null }>("POST", `/ai/providers/${id}/test`),
+  requestAiNote: (findingId: number) => json<AiNote>("POST", `/findings/${findingId}/ai-notes`),
+  decideAiNote: (noteId: number, decision: string) => json<AiNote>("POST", `/ai-notes/${noteId}/decision`, { decision }),
+  proposeLesson: (findingId: number, text: string) => json<KbSource>("POST", `/findings/${findingId}/lesson`, { text: text || null }),
+  kbSources: () => json<KbSource[]>("GET", "/kb/sources"),
+  kbAdd: (form: FormData) => json<KbSource>("POST", "/kb/sources", form),
+  kbUpdate: (id: number, body: Record<string, unknown>) => json<KbSource>("PATCH", `/kb/sources/${id}`, body),
+  kbDelete: (id: number) => json<void>("DELETE", `/kb/sources/${id}`),
+  kbSearch: (q: string) => json<KbHit[]>("GET", `/kb/search?q=${encodeURIComponent(q)}`),
+  kbReindex: () => json<{ indexed: number; provider: string }>("POST", "/kb/reindex", {}),
   findings: (id: number, query: string) => json<Finding[]>("GET", `/projects/${id}/findings${query ? `?${query}` : ""}`),
   finding: (id: number) => json<FindingDetail>("GET", `/findings/${id}`),
   act: (id: number, action: string, comment: string) => json<FindingDetail>("POST", `/findings/${id}/actions`, { action, comment }),
