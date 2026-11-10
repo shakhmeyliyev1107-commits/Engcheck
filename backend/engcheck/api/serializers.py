@@ -13,7 +13,7 @@ def user_out(u: User) -> dict:
 
 def project_out(p: Project) -> dict:
     return {"id": p.id, "name": p.name, "industry": p.industry, "stage": str(p.stage),
-            "created_at": p.created_at.isoformat()}
+            "created_at": p.created_at.isoformat(), "allow_cloud_ai": bool(p.allow_cloud_ai)}
 
 
 def parse_message(d: Document, locale: str) -> str | None:
@@ -68,3 +68,26 @@ def finding_out(f: Finding, locale: str, detail: bool = False, users: dict[int, 
             "actions": [{"action": a.action, "comment": a.comment, "user": users.get(a.user_id),
                          "created_at": a.created_at.isoformat()} for a in f.actions]})
     return out
+
+
+def ai_note_out(n, users: dict[int, str] | None = None) -> dict:
+    users = users or {}
+    return {"id": n.id, "finding_id": n.finding_id, "provider": n.provider_name, "model": n.model,
+            "ai_mode": n.ai_mode, "locale": n.locale, "text": n.text, "assumptions": n.assumptions or [],
+            "citations": n.citations or [], "status": n.status, "created_by": users.get(n.created_by),
+            "decided_by": users.get(n.decided_by), "created_at": n.created_at.isoformat()}
+
+
+def kb_source_out(s, users: dict[int, str] | None = None) -> dict:
+    users = users or {}
+    return {"id": s.id, "title": s.title, "kind": s.kind, "standard_code": s.standard_code, "edition": s.edition,
+            "status": s.status, "license_type": s.license_type, "filename": s.filename, "approved": s.approved,
+            "origin_finding_id": s.origin_finding_id, "added_by": users.get(s.added_by),
+            "added_at": s.added_at.isoformat(), "chunks": len(s.chunks)}
+
+
+def run_out(run, locale: str) -> dict:
+    from .errors import ai_reason
+    return {"id": run.id, "started_at": run.started_at.isoformat(), "ai_mode": run.ai_mode,
+            "ai_provider": run.ai_provider, "ai_note": run.ai_note, "ai_message": ai_reason(run.ai_note, locale),
+            "ai_stats": run.ai_stats, "errors": run.errors}

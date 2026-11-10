@@ -1,12 +1,13 @@
 from collections import Counter
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session as Db
 
 from ..core.auth import Perm
-from ..core.models import Document, Finding, FindingStatus, Rule, Severity, User
+from ..core.models import Document, Finding, FindingStatus, KbSource, Rule, Severity, User
 from ..review.engine import seed_rules
-from .deps import get_db, require
+from .deps import get_db, locale_of, require
+from .serializers import run_out
 from .routes_findings import OPEN, latest_run
 from .routes_projects import get_project
 
@@ -14,7 +15,7 @@ router = APIRouter()
 
 
 @router.get("/projects/{project_id}/dashboard")
-def dashboard(project_id: int, _: User = Depends(require(Perm.view)), db: Db = Depends(get_db)):
+def dashboard(project_id: int, request: Request, _: User = Depends(require(Perm.view)), db: Db = Depends(get_db)):
     get_project(db, project_id)
     seed_rules(db)
     docs = db.query(Document).filter_by(project_id=project_id).all()
@@ -33,8 +34,10 @@ def dashboard(project_id: int, _: User = Depends(require(Perm.view)), db: Db = D
                      "by_status": {s.value: by_status.get(s.value, 0) for s in FindingStatus},
                      "open": len(open_items),
                      "open_critical": sum(1 for f in open_items if f.severity == Severity.critical),
-                     "confirmed_unfixed": by_status.get("confirmed", 0)},
-        "last_run": None if run is None else {"id": run.id, "started_at": run.started_at.isoformat(),
-                                              "ai_mode": run.ai_mode, "errors": run.errors},
+                     "confirmed_unfixed": by_status.get("confirmed", 0),
+                     "ai": sum(1 for f in findings if f.source_type == "ai")},
+        "last_run": None if run is None else run_out(run, locale_of(request)),
+        "kb": {"sources": db.query(KbSource).filter_by(approved=True).count(),
+               "pending": db.query(KbSource).filter_by(approved=False).count()},
         "rules": {"enabled": sum(1 for r in rules if r.enabled), "total": len(rules)},
     }

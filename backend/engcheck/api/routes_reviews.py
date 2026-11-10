@@ -9,7 +9,8 @@ from ..review.engine import run_review, seed_rules
 from .deps import get_db, locale_of, require
 from .errors import ApiError
 from .routes_projects import get_project
-from .serializers import rule_out
+from .routes_ai import resolve_for
+from .serializers import rule_out, run_out
 
 router = APIRouter()
 
@@ -18,12 +19,17 @@ class RulePatch(BaseModel):
     enabled: bool
 
 
+class ReviewBody(BaseModel):
+    use_ai: bool = False
+
+
 @router.post("/projects/{project_id}/reviews", status_code=201)
-def start_review(project_id: int, user: User = Depends(require(Perm.review)), db: Db = Depends(get_db)):
-    get_project(db, project_id)
-    run = run_review(db, project_id, user.id)
-    return {"id": run.id, "started_at": run.started_at.isoformat(), "ai_mode": run.ai_mode,
-            "errors": run.errors}
+def start_review(project_id: int, request: Request, body: ReviewBody | None = None,
+                 user: User = Depends(require(Perm.review)), db: Db = Depends(get_db)):
+    project = get_project(db, project_id)
+    resolution = resolve_for(request, db, project) if body and body.use_ai else None
+    run = run_review(db, project_id, user.id, resolution=resolution, locale=locale_of(request))
+    return run_out(run, locale_of(request))
 
 
 @router.get("/rules")
