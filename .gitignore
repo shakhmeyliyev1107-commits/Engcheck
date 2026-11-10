@@ -1,0 +1,10 @@
+.superpowers/
+__pycache__/
+*.egg-info/
+.pytest_cache/
+node_modules/
+dist/
+data/
+test-results/
+playwright-report/
+frontend/e2e/.tmp/

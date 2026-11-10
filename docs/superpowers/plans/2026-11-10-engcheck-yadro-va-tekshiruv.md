@@ -334,7 +334,7 @@ def test_assumed_unit_lowers_confidence(): ...   # "16 bar" → medium
 | `GP-PID-001_RevC.dxf` | PID | GP-PID-001 / C | Bloklar: V-101 (DP 16 barg, DT 120 °C), V-102, P-101A, P-101B, E-101, E-102; chiziq matnlari: `10"-HC-1001-A1A`, `8"-AM-1002-A1A`, `6"-AM-1003-B1A`, `4"-AM-1005-B2C`; asboblar PT-1001, FIC-2003 |
 | `GP-EQL-001_RevB.xlsx` | EQUIPMENT_LIST | GP-EQL-001 / B | Sarlavha 4-qatorda. V-101 (DP 16 barg, OP 12 barg, DT 120 °C, CS), V-102 (DP 5 barg, OP 7 barg), P-101A (45 kW), P-101B (45 kW, SS316), E-101. **E-102 yo‘q.** |
 | `GP-LL-001_RevB.xlsx` | LINE_LIST | GP-LL-001 / B | PID dagi 4 chiziq + `6"-AM-1004-A1A`; ustunlar: line no, size, fluid, pipe class, DP, DT |
-| `GP-DS-V101_RevA.pdf` | DATASHEET | GP-DS-V101 / A | V-101: DP **10 barg**, OP **174 psig**, DT 120 °C, CS; "Ref. P&ID GP-PID-001 Rev **A**" |
+| `GP-DS-V101_RevA.pdf` | DATASHEET | GP-DS-V101 / A | V-101: DP **14 barg**, OP **174 psig**, DT 120 °C, CS; "Ref. P&ID GP-PID-001 Rev **A**" |
 | `GP-DS-P101_RevA.pdf` | DATASHEET | GP-DS-P101 / A | 1-sahifa P-101A: **55 kW**, SS316; 2-sahifa P-101B: 45 kW, material **bo‘sh**; "Ref. P&ID GP-PID-001 Rev C" |
 | `GP-MS-001_RevA.docx` | MATERIAL_SPEC | GP-MS-001 / A | Quvur sinflari jadvali: A1A, B1A (**B2C yo‘q**) |
 
@@ -348,7 +348,7 @@ def test_sample_generates_six_parsable_docs(tmp_path):
 def test_seeded_values_present(tmp_path):
     ex = {d.doc_number: extract(parse_file(d.path), d.doc_type) for d in generate(tmp_path)}
     dp = lambda n, t: next(p.si_value for p in ex[n].params if p.tag == t and p.param == "design_pressure")
-    assert dp("GP-PID-001", "V-101") == 1600.0 and dp("GP-DS-V101", "V-101") == 1000.0
+    assert dp("GP-PID-001", "V-101") == 1600.0 and dp("GP-DS-V101", "V-101") == 1400.0
     assert "E-102" not in {t.tag for t in ex["GP-EQL-001"].tags}
     assert ("GP-PID-001", "A", 1) in ex["GP-DS-V101"].refs
 ```
