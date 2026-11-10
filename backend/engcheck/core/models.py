@@ -2,7 +2,8 @@
 from datetime import datetime, timezone
 from enum import StrEnum
 
-from sqlalchemy import JSON, Boolean, DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import (JSON, Boolean, DateTime, Float, ForeignKey, Integer, LargeBinary, String, Text,
+                        UniqueConstraint)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .db import Base
@@ -124,6 +125,8 @@ class Project(Base):
     stage: Mapped[Stage] = mapped_column(String(16))
     created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    # Loyiha matnlarini bulutli AI ga yuborishga ruxsat; standart holatda yo'q.
+    allow_cloud_ai: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
 
 
 class Document(Base):
@@ -235,6 +238,8 @@ class ReviewRun(Base):
     started_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
     ai_mode: Mapped[str] = mapped_column(String(8), default="none")
     errors: Mapped[list] = mapped_column(JSON, default=list)
+    ai_provider: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    ai_note: Mapped[str | None] = mapped_column(String(80), nullable=True)   # AI ishlatilmagan sabab kodi
 
 
 class Finding(Base):
@@ -293,3 +298,68 @@ class AuditLog(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
     prev_hash: Mapped[str] = mapped_column(String(64))
     hash: Mapped[str] = mapped_column(String(64))
+
+
+class AiProvider(Base):
+    """AI provayder sozlamasi. API kaliti bu yerda EMAS — SecretStore da."""
+    __tablename__ = "ai_providers"
+    id: Mapped[int] = _pk()
+    name: Mapped[str] = mapped_column(String(80), unique=True)
+    kind: Mapped[str] = mapped_column(String(24))            # anthropic | openai_compatible | ollama
+    base_url: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    model: Mapped[str] = mapped_column(String(120))
+    embed_model: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    is_default: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+
+class KbSource(Base):
+    __tablename__ = "kb_sources"
+    id: Mapped[int] = _pk()
+    title: Mapped[str] = mapped_column(String(255))
+    kind: Mapped[str] = mapped_column(String(16))            # standard | literature | note | lesson
+    standard_code: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    edition: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    status: Mapped[str] = mapped_column(String(16), default="active")         # active | superseded | withdrawn
+    license_type: Mapped[str] = mapped_column(String(16), default="internal")  # licensed | open | internal
+    filename: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    sha256: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    stored_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    approved: Mapped[bool] = mapped_column(Boolean, default=False)
+    origin_finding_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    added_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    approved_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    added_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    chunks: Mapped[list["KbChunk"]] = relationship(cascade="all, delete-orphan", order_by="KbChunk.ordinal",
+                                                   back_populates="source")
+
+
+class KbChunk(Base):
+    __tablename__ = "kb_chunks"
+    id: Mapped[int] = _pk()
+    source_id: Mapped[int] = _fk("kb_sources.id")
+    ordinal: Mapped[int] = mapped_column(Integer)
+    page_no: Mapped[int] = mapped_column(Integer, default=1)
+    text: Mapped[str] = mapped_column(Text)
+    embedding: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
+    embed_model: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    source: Mapped[KbSource] = relationship(back_populates="chunks")
+
+
+class FindingAiNote(Base):
+    """Topilmaga AI izohi. Muhandis qabul qilmaguncha 'proposed'."""
+    __tablename__ = "finding_ai_notes"
+    id: Mapped[int] = _pk()
+    finding_id: Mapped[int] = _fk("findings.id")
+    provider_name: Mapped[str] = mapped_column(String(80))
+    model: Mapped[str] = mapped_column(String(120))
+    ai_mode: Mapped[str] = mapped_column(String(8))          # online | local
+    locale: Mapped[str] = mapped_column(String(2), default="uz")
+    text: Mapped[str] = mapped_column(Text)
+    assumptions: Mapped[list] = mapped_column(JSON, default=list)
+    citations: Mapped[list] = mapped_column(JSON, default=list)
+    status: Mapped[str] = mapped_column(String(10), default="proposed")   # proposed | accepted | rejected
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    decided_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)

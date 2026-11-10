@@ -1,5 +1,5 @@
 """Baza ulanishi."""
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine, event, inspect, text
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
 
@@ -18,4 +18,26 @@ def init_db(db_url: str) -> sessionmaker:
         dbapi_conn.execute("PRAGMA foreign_keys=ON")
 
     Base.metadata.create_all(engine)
+    add_missing_columns(engine)
     return sessionmaker(engine, expire_on_commit=False)
+
+
+def add_missing_columns(engine) -> list[str]:
+    """Oldingi versiya bazasiga yangi ustunlarni qo'shadi (ma'lumot saqlanadi).
+
+    Faqat ustun qo'shadi; mavjud ustunni o'zgartirmaydi yoki o'chirmaydi.
+    """
+    added = []
+    inspector = inspect(engine)
+    with engine.begin() as con:
+        for table in Base.metadata.sorted_tables:
+            existing = {c["name"] for c in inspector.get_columns(table.name)}
+            for column in table.columns:
+                if column.name in existing:
+                    continue
+                ddl = f'ALTER TABLE "{table.name}" ADD COLUMN "{column.name}" {column.type.compile(engine.dialect)}'
+                if column.server_default is not None:
+                    ddl += f" DEFAULT {column.server_default.arg!s}"
+                con.execute(text(ddl))
+                added.append(f"{table.name}.{column.name}")
+    return added
