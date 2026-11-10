@@ -17,7 +17,7 @@ def test_review_yields_eight_findings_with_required_fields(reviewed):
     for key in ("description", "rationale", "recommendation", "source", "severity", "status", "confidence"):
         assert detail[key], key
     assert detail["source"] == "Loyiha hujjatlari o‘rtasidagi ichki nomuvofiqlik"
-    assert len(detail["evidence"]) == 3
+    assert len(detail["evidence"]) == 3 and detail["project_id"] == pid
     e = detail["evidence"][0]
     assert {"document_id", "doc_number", "filename", "page_no", "location", "value"} <= set(e)
 

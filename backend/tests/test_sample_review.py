@@ -42,8 +42,9 @@ def test_v101_mismatch_cites_all_three_documents(findings, ingest_sample):
     f = next(f for f in findings if f.rule.code == "R001" and f.tag_text == "V-101")
     assert {e.document_id for e in f.evidence} == {ingest_sample[n].id for n in
                                                    ("GP-PID-001", "GP-EQL-001", "GP-DS-V101")}
-    assert sorted(e.value for e in f.evidence) == ["14 barg", "16", "16 barg"]
+    assert sorted(e.value for e in f.evidence) == ["14 barg", "16 barg", "16 barg"]
     assert f.confidence == Confidence.high
+    assert "GP-EQL-001: 16 barg" in f.rationale   # ustun sarlavhasidagi birlik qiymat bilan ko'rsatiladi
 
 
 def test_missing_material_points_to_page_two(findings, ingest_sample):

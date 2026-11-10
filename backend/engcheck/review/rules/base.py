@@ -62,12 +62,19 @@ def parsed_docs(db: Db, project_id: int, doc_type: DocType | None = None) -> lis
     return q.order_by(Document.id).all()
 
 
+def display_value(p: TagParam) -> str:
+    """Hujjatdagi qiymat; birlik ustun sarlavhasidan olingan bo'lsa, qiymatga qo'shiladi."""
+    if p.raw_unit and p.raw_unit not in p.raw_value:
+        return f"{p.raw_value} {p.raw_unit}"
+    return p.raw_value
+
+
 def param_evidence(p: TagParam) -> Evidence:
-    return Evidence(p.document_id, p.page_no, p.location, p.raw_value)
+    return Evidence(p.document_id, p.page_no, p.location, display_value(p))
 
 
 def values_text(params: list[TagParam]) -> str:
-    return "; ".join(f"{doc_label(p.document)}: {p.raw_value}" for p in params)
+    return "; ".join(f"{doc_label(p.document)}: {display_value(p)}" for p in params)
 
 
 def all_cell_high(params: list[TagParam]) -> bool:

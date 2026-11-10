@@ -34,8 +34,10 @@ def latest_run(db: Db, project_id: int) -> ReviewRun | None:
     return db.query(ReviewRun).filter_by(project_id=project_id).order_by(ReviewRun.id.desc()).first()
 
 
-def _user_names(db: Db) -> dict[int, str]:
-    return {u.id: u.login for u in db.query(User)}
+def _detail(db: Db, finding: Finding, locale: str) -> dict:
+    out = finding_out(finding, locale, detail=True, users={u.id: u.login for u in db.query(User)})
+    out["project_id"] = db.get(ReviewRun, finding.run_id).project_id
+    return out
 
 
 @router.get("/projects/{project_id}/findings")
@@ -77,7 +79,7 @@ def _get(db: Db, finding_id: int) -> Finding:
 @router.get("/findings/{finding_id}")
 def read_finding(finding_id: int, request: Request, _: User = Depends(require(Perm.view)),
                  db: Db = Depends(get_db)):
-    return finding_out(_get(db, finding_id), locale_of(request), detail=True, users=_user_names(db))
+    return _detail(db, _get(db, finding_id), locale_of(request))
 
 
 @router.post("/findings/{finding_id}/actions")
@@ -96,4 +98,4 @@ def act(finding_id: int, body: ActionBody, request: Request,
     db.flush()
     audit.record(db, user.id, f"finding.{body.action}", "finding", finding.id,
                  {"from": previous, "to": str(target), "comment": comment})
-    return finding_out(finding, locale_of(request), detail=True, users=_user_names(db))
+    return _detail(db, finding, locale_of(request))
