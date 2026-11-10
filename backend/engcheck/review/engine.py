@@ -50,7 +50,9 @@ def _carry_decision(db: Db, project_id: int, run_id: int, finding: Finding) -> N
                 .order_by(Finding.id.desc()).first())
     if previous is None or previous.status not in CARRIED_STATUSES:
         return
-    finding.status = previous.status
+    # "Tuzatilgan" deb belgilangan muammo yana topilsa, u tuzatilmagan: tasdiqlangan holatga qaytadi.
+    finding.status = (FindingStatus.confirmed if previous.status == FindingStatus.fixed
+                      else previous.status)
     last = previous.actions[-1] if previous.actions else None
     finding.actions.append(FindingAction(user_id=last.user_id if last else None,
                                          action="carried_over",

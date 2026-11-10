@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session as Db
 
 from ..core import audit
 from ..core.auth import Perm
-from ..core.models import (Finding, FindingAction, FindingEvidence, FindingStatus, ReviewRun, Rule,
+from ..core.models import (DocType, Document, Finding, FindingAction, FindingEvidence, FindingStatus, ReviewRun, Rule,
                            Severity, User)
 from .deps import get_db, locale_of, require
 from .errors import ApiError
@@ -45,6 +45,7 @@ def list_findings(project_id: int, request: Request,
                   severity: Severity | None = None,
                   status: Literal["new", "reviewed", "confirmed", "rejected", "fixed", "open"] | None = None,
                   rule: str | None = None, document_id: int | None = None, tag: str | None = None,
+                  doc_type: DocType | None = None,
                   _: User = Depends(require(Perm.view)), db: Db = Depends(get_db)):
     get_project(db, project_id)
     run = latest_run(db, project_id)
@@ -64,6 +65,10 @@ def list_findings(project_id: int, request: Request,
     if document_id is not None:
         q = q.filter(Finding.id.in_(db.query(FindingEvidence.finding_id)
                                     .filter(FindingEvidence.document_id == document_id)))
+    if doc_type is not None:
+        q = q.filter(Finding.id.in_(
+            db.query(FindingEvidence.finding_id).join(Document, FindingEvidence.document_id == Document.id)
+            .filter(Document.doc_type == doc_type)))
     order = {"critical": 0, "major": 1, "minor": 2, "info": 3}
     items = sorted(q.all(), key=lambda f: (order[str(f.severity)], f.id))
     return [finding_out(f, locale_of(request)) for f in items]

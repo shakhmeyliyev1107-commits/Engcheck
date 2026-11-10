@@ -216,6 +216,21 @@ Manba va ishonchlilik qoidalari:
   DXF parser koordinatalarni saqlaydi.
 - Interfeys matnlari boshidan uch tilli kalit-qiymat fayllarida.
 
+### 4- va 5-sikllar uchun qo‘shimcha talab (foydalanuvchi, 2026-11-10)
+
+Prinsipial sxema va 3D model faqat avtomatik yaratilmaydi — **muhandis ularni
+tahrirlay oladi**:
+
+- Sxema: uskuna va oqimlarni ko‘chirish, qo‘shish, o‘chirish, ulash, nomlash.
+- 3D: uskunani ko‘chirish, burish, o‘lchamini o‘zgartirish, qo‘shish, o‘chirish.
+- Qo‘lda kiritilgan o‘zgarish avtomatik qayta yaratishda yo‘qolmaydi:
+  generator natijasi va muhandis tahriri alohida qatlamlarda saqlanadi.
+- Har tahrir audit jurnaliga yoziladi; oldingi holatga qaytarish mumkin.
+- Tahrir faqat sxema/3D modelga ta'sir qiladi — yuklangan asl hujjatlar
+  o‘zgarmaydi. Tahrirdan so‘ng hujjatlar bilan farq topilma sifatida ko‘rsatiladi.
+
+Batafsil dizayn shu sikllarning o‘z spetsifikatsiyasida.
+
 ## 9. Interfeys (1-sikl, minimal)
 
 Sahifalar: kirish; loyihalar ro‘yxati; loyiha sahifasi (hujjatlar, yuklash,

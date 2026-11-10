@@ -117,7 +117,7 @@ def update_user(user_id: int, body: UserPatch, admin: User = Depends(require(Per
         user.is_active = body.is_active
     if body.password is not None:
         try:
-            user.password_hash = auth.hash_password(body.password)
+            auth.set_password(db, user, body.password)
         except ValueError as exc:
             raise ApiError(422, str(exc)) from exc
     audit.record(db, admin.id, "user.update", "user", user.id,

@@ -141,6 +141,7 @@ class Document(Base):
     parse_status: Mapped[ParseStatus] = mapped_column(String(16), default=ParseStatus.pending)
     parse_error: Mapped[str | None] = mapped_column(Text, nullable=True)
     unmapped_headers: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    skipped_tags: Mapped[list | None] = mapped_column(JSON, nullable=True)
     uploaded_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
     uploaded_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 

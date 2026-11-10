@@ -100,6 +100,16 @@ Buzilgan yoki noma'lum fayl "Xato" holatini oladi; qolgan hujjatlar ishlayveradi
   ko‘rsatiladi — ular tekshiruvda qatnashmaydi.
 - Qiymatlar SI ga keltiriladi (bosim kPa(g), harorat °C, sarf m³/h, o‘lcham mm,
   quvvat kW); asl qiymat ham saqlanadi.
+- Teg yozilishi bir xil ko‘rinishga keltiriladi: `p-101 a`, `P101A`, kirillcha
+  `Р-101А` → `P-101A`; `P-101A/B` ikki tegga ajraladi. Teg ustunidagi
+  tanilmagan qiymatlar hujjat sahifasida ko‘rsatiladi — bu qatorlar o‘qilmagan.
+- Sarlavha ostidagi birliklar qatori (`in | barg | °C`) va `DN`/`NPS`
+  ustunlari tushuniladi.
+- Diapazon (`-29 / 150 °C`) va noaniq yozuv (`1,200` — 1200 ham, 1,2 ham
+  bo‘lishi mumkin) songa aylantirilmaydi; R007 ularni "o‘qilmagan qiymat"
+  sifatida ko‘rsatadi.
+- Bir raqamli hujjatning bir nechta reviziyasi yuklansa, tekshiruvda faqat eng
+  yuqorisi qatnashadi. Tartib: harfli (A, B, C) < raqamli (0, 1, 2).
 - Belgisiz `bar`, `psi`, `kPa`, `MPa` manometrik deb olinadi va shu qiymatga
   tayangan topilmaning ishonchliligi "O‘rta" ga tushadi.
 
@@ -108,12 +118,12 @@ Buzilgan yoki noma'lum fayl "Xato" holatini oladi; qolgan hujjatlar ishlayveradi
 | Kod | Nimani tekshiradi | Jiddiylik |
 |---|---|---|
 | R001 | Bir teg va parametr turli hujjatlarda turlicha (son uchun 1 % bardoshlik) | Jiddiy; bosim va harorat — Kritik |
-| R002 | Teg P&ID ↔ uskunalar ro‘yxati ↔ quvurlar ro‘yxatida, datasheet → uskunalar ro‘yxatida yo‘q | Jiddiy |
+| R002 | Teg P&ID ↔ uskunalar ro‘yxati ↔ quvurlar ro‘yxatida, datasheet → uskunalar ro‘yxatida yo‘q. P&ID matnidan topilgan teg faqat prefiksi loyihada uskuna sifatida ma'lum bo‘lsa tekshiriladi | Jiddiy |
 | R003 | Datasheet yoki quvurlar ro‘yxatida majburiy maydon bo‘sh | Kichik; loyiha bosimi/harorati — Jiddiy |
-| R004 | Loyiha bosimi yoki harorati ish qiymatidan past | Kritik |
+| R004 | Loyiha bosimi yoki harorati ish qiymatidan past; manfiy loyiha harorati minimal harorat deb olinadi | Kritik |
 | R005 | Quvur sinfi material spetsifikatsiyasida yo‘q | Jiddiy |
-| R006 | Hujjat boshqa hujjatning eskirgan reviziyasiga havola qiladi | Kichik |
-| R007 | Sonli qiymatning o‘lchov birligi tanilmadi | Kichik |
+| R006 | Hujjat boshqa hujjatning eskirgan yoki loyihaga yuklanmagan reviziyasiga havola qiladi | Kichik |
+| R007 | Sonli qiymatning birligi tanilmadi (Kichik) yoki qiymat o‘qilmadi (Ma'lumot) | Kichik / Ma'lumot |
 
 Qoidalarni yetakchi muhandis yoki administrator **Boshqaruv** sahifasida
 yoqadi va o‘chiradi.
@@ -184,6 +194,6 @@ docs/superpowers/   spetsifikatsiya va amalga oshirish rejasi
 | AI tahlili, provayderni API kaliti bilan ulash, lokal modellar | 2 |
 | Bilimlar bazasi (standartlar, adabiyotlar), RAG | 2 |
 | Desktop o‘rnatuvchi (Electron), baza shifrlash, loyiha paketini eksport/import | 3 |
-| Prinsipial sxema generatori | 4 |
-| 3D joylashuv modeli | 5 |
+| Prinsipial sxema generatori va tahrirlagichi | 4 |
+| 3D joylashuv modeli va uni tahrirlash | 5 |
 | OCR (skanerlangan PDF) | rejalashtirilmagan |

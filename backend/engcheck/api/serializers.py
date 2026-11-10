@@ -24,8 +24,10 @@ def parse_message(d: Document, locale: str) -> str | None:
     return localize(PARSE_MESSAGES, code, locale)
 
 
-def document_out(d: Document, locale: str) -> dict:
-    return {"id": d.id, "project_id": d.project_id, "filename": d.filename,
+def document_out(d: Document, locale: str, active: set[int] | None = None) -> dict:
+    """active — tekshiruvda qatnashadigan hujjatlar; berilsa, eskirgan reviziya belgilanadi."""
+    return {"superseded": (active is not None and str(d.parse_status) == "parsed" and d.id not in active),
+            "id": d.id, "project_id": d.project_id, "filename": d.filename,
             "doc_type": str(d.doc_type), "discipline": str(d.discipline),
             "doc_number": d.doc_number, "revision": d.revision, "sha256": d.sha256,
             "parse_status": str(d.parse_status), "parse_error": d.parse_error,

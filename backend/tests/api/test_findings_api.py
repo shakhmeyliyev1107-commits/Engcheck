@@ -122,3 +122,23 @@ def test_disabling_rule_removes_its_findings_on_next_run(reviewed, client_as):
 
 def test_finding_of_missing_id_404(client_as):
     assert client_as("viewer").get("/api/findings/12345").status_code == 404
+
+
+def test_findings_filter_by_document_type(reviewed):
+    c, pid = reviewed
+    assert {(f["rule"], f["tag"]) for f in _findings(c, pid, doc_type="MATERIAL_SPEC")} == set()
+    assert {f["rule"] for f in _findings(c, pid, doc_type="LINE_LIST")} == {"R002", "R005"}
+    assert c.get(f"/api/projects/{pid}/findings", params={"doc_type": "NOPE"}).status_code == 422
+
+
+def test_document_list_marks_superseded_revision(client_as, sample_docs, upload, tmp_path):
+    import openpyxl
+    c = client_as("engineer")
+    pid = c.post("/api/projects", json={"name": "GP", "industry": "gtl", "stage": "DD"}).json()["id"]
+    upload(c, pid, sample_docs[1])                                   # GP-EQL-001 Rev B
+    newer = tmp_path / "GP-EQL-001_RevC.xlsx"
+    wb = openpyxl.Workbook(); wb.active.append(["Tag No.", "Material"]); wb.active.append(["V-101", "CS"]); wb.save(newer)
+    with open(newer, "rb") as f:
+        c.post(f"/api/projects/{pid}/documents", files={"file": (newer.name, f)},
+               data={"doc_type": "EQUIPMENT_LIST", "discipline": "mechanical", "doc_number": "GP-EQL-001", "revision": "C"})
+    assert {d["revision"]: d["superseded"] for d in c.get(f"/api/projects/{pid}/documents").json()} == {"B": True, "C": False}

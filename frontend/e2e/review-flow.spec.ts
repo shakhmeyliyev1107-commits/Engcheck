@@ -164,3 +164,27 @@ test("kuzatuvchi faqat ko‘radi", async ({ page, request }) => {
   await expect(page.getByTestId("action-confirm")).toHaveCount(0);
   await expect(page.getByTestId("evidence-row").first()).toBeVisible();
 });
+
+test("hujjat turi filtri va tanilmagan teg qatorlari ko‘rsatiladi", async ({ page }) => {
+  await signIn(page);
+  await openProject(page, PROJECT);
+  await page.getByTestId("card-open").click();
+  await page.getByTestId("filter-status").selectOption("");
+  await page.getByTestId("filter-doctype").selectOption("MATERIAL_SPEC");
+  await expect(page).toHaveURL(/doc_type=MATERIAL_SPEC/);
+  await expect(page.getByTestId("finding-row")).toHaveCount(0);
+  await page.getByTestId("filter-doctype").selectOption("LINE_LIST");
+  await expect(page.getByTestId("finding-row")).toHaveCount(2);   // R002 (P&ID da yo‘q quvur) + R005
+
+  // Tegi tanilmagan qator jim tashlab ketilmaydi: hujjat sahifasida ko'rsatiladi
+  const XLSX = await import("node:child_process");
+  const file = path.join(SAMPLE_DIR, "..", "GP-EQL-009_RevA.xlsx");
+  XLSX.execFileSync("python", ["-c",
+    "import openpyxl,sys;wb=openpyxl.Workbook();ws=wb.active;ws.append(['Tag No.','Material']);ws.append(['V-901','CS']);ws.append(['see note 3','CS']);wb.save(sys.argv[1])", file]);
+  await openProject(page, PROJECT);
+  await page.getByTestId("open-upload").click();
+  await page.getByTestId("file-input").setInputFiles(file);
+  await page.getByTestId("upload-submit").click();
+  await page.getByRole("link", { name: "GP-EQL-009" }).click();
+  await expect(page.getByTestId("skipped-tags")).toContainText("see note 3");
+});

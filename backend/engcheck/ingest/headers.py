@@ -27,6 +27,8 @@ _SYNONYMS: dict[str, list[str]] = {
     "doc_number": ["document no", "doc no", "document number", "hujjat raqami", "номер документа"],
 }
 _LOOKUP = {syn: param for param, syns in _SYNONYMS.items() for syn in syns}
+# Sarlavhaning o'zi birlikni bildiradi: "DN" ustunidagi 150 -> 150 mm
+_IMPLIED_UNIT = {"dn": "DN", "nps": "NPS"}
 _UNIT_RE = re.compile(r"^(.*?)\s*(?:,\s*([^,]+)|\(([^)]*)\)|\[([^\]]*)\])\s*$")
 
 
@@ -43,7 +45,7 @@ def match_header(text: str) -> tuple[str, str | None] | None:
         return None
     param = _LOOKUP.get(_norm(raw))
     if param:
-        return param, None
+        return param, _IMPLIED_UNIT.get(_norm(raw))
     m = _UNIT_RE.match(raw)
     if m:
         param = _LOOKUP.get(_norm(m.group(1)))

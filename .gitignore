@@ -7,3 +7,4 @@ dist/
 data/
 test-results/
 playwright-report/
+frontend/e2e/.tmp/

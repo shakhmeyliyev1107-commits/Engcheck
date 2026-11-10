@@ -143,6 +143,7 @@ export function ProjectPage() {
                   <td>{doc.revision ?? "—"}</td>
                   <td>
                     <ParseBadge value={doc.parse_status} />
+                    {doc.superseded && <div className="warn" style={{ marginTop: 4 }} data-testid="superseded">{t("doc.superseded")}</div>}
                     {doc.parse_message && <div className="muted" style={{ fontSize: ".85rem", marginTop: 4 }}>{doc.parse_message}</div>}
                   </td>
                   <td>{can(user, "upload") && <button className="link" onClick={() => removeDoc(doc.id)}>{t("common.delete")}</button>}</td>

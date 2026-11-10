@@ -69,13 +69,13 @@ export interface User { id: number; login: string; role: string; locale: string;
 export interface Project { id: number; name: string; industry: string; stage: string; created_at: string }
 export interface Doc {
   id: number; project_id: number; filename: string; doc_type: string; discipline: string;
-  doc_number: string | null; revision: string | null; parse_status: string; parse_message: string | null;
+  doc_number: string | null; revision: string | null; parse_status: string; parse_message: string | null; superseded: boolean;
 }
 export interface Param {
   tag: string; param: string; param_name: string; raw_value: string; si_value: number | null;
   si_unit: string | null; page_no: number; location: string; confidence: string;
 }
-export interface DocDetail extends Doc { pages: { page_no: number; text: string }[]; params: Param[]; unmapped_headers: string[] }
+export interface DocDetail extends Doc { pages: { page_no: number; text: string }[]; params: Param[]; unmapped_headers: string[]; skipped_tags: string[] }
 export interface Finding {
   id: number; rule: string; rule_title: string; tag: string | null; param: string | null;
   severity: string; confidence: string; status: string; source_type: string; description: string; documents: string[];

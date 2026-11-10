@@ -168,5 +168,8 @@
   "role.admin": "Administrator",
   "role.lead": "Lead engineer",
   "role.engineer": "Engineer",
-  "role.viewer": "Viewer"
+  "role.viewer": "Viewer",
+  "findings.docType": "Document type",
+  "doc.superseded": "Superseded revision — not used in the review",
+  "doc.skippedTags": "Unrecognised values in the tag column (these rows were not read)"
 }

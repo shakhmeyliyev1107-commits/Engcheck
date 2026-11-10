@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session as Db, joinedload
 from ..core.auth import Perm
 from ..core.models import Discipline, DocPage, DocType, Document, TagParam, User
 from ..ingest import service
+from ..review.rules.base import active_ids
 from .deps import get_db, locale_of, require
 from .errors import ApiError
 from .routes_projects import get_project
@@ -42,7 +43,8 @@ def list_documents(project_id: int, request: Request, _: User = Depends(require(
                    db: Db = Depends(get_db)):
     get_project(db, project_id)
     docs = db.query(Document).filter_by(project_id=project_id).order_by(Document.id)
-    return [document_out(d, locale_of(request)) for d in docs]
+    active = active_ids(db, project_id)
+    return [document_out(d, locale_of(request), active) for d in docs]
 
 
 @router.post("/projects/{project_id}/documents", status_code=201)
@@ -73,8 +75,9 @@ def read_document(document_id: int, request: Request, _: User = Depends(require(
                   db: Db = Depends(get_db)):
     doc = get_document(db, document_id)
     locale = locale_of(request)
-    out = document_out(doc, locale)
+    out = document_out(doc, locale, active_ids(db, doc.project_id))
     out["unmapped_headers"] = doc.unmapped_headers or []
+    out["skipped_tags"] = doc.skipped_tags or []
     out["pages"] = [{"page_no": p.page_no, "text": p.text} for p in
                     db.query(DocPage).filter_by(document_id=doc.id).order_by(DocPage.page_no)]
     params = (db.query(TagParam).filter_by(document_id=doc.id).options(joinedload(TagParam.tag))

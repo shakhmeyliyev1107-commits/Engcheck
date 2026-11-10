@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session as Db
 
 from ..config import Settings
 from ..core import audit
-from ..core.models import (Discipline, DocPage, DocRef, DocType, Document, ParseStatus, Tag,
+from ..core.models import (Discipline, DocPage, DocRef, DocType, Document, Method, ParseStatus, Tag,
                            TagOccurrence, TagParam)
 from .extract import extract
 from .parsers import ParseError, parse_file
@@ -95,6 +95,7 @@ def _persist(db: Db, doc: Document, parsed, ex) -> None:
     doc.doc_number = doc.doc_number or ex.doc_number
     doc.revision = doc.revision or ex.revision
     doc.unmapped_headers = ex.unmapped_headers
+    doc.skipped_tags = ex.skipped_tags
     for page in parsed.pages:
         db.add(DocPage(document_id=doc.id, page_no=page.number, text=page.text))
     tags: dict[str, Tag] = {}
@@ -110,7 +111,11 @@ def _persist(db: Db, doc: Document, parsed, ex) -> None:
         return tags[name]
 
     for t in ex.tags:
-        db.add(TagOccurrence(tag_id=tag_row(t.tag, t.tag_class).id, document_id=doc.id,
+        row = tag_row(t.tag, t.tag_class)
+        # Jadval katagidan aniqlangan sinf matndan taxmin qilingan sinfdan ustun.
+        if t.method == Method.cell and row.tag_class != t.tag_class:
+            row.tag_class = t.tag_class
+        db.add(TagOccurrence(tag_id=row.id, document_id=doc.id,
                              page_no=t.page_no, location=t.location, method=t.method))
     for p in ex.params:
         db.add(TagParam(tag_id=tags[p.tag].id, param=p.param, raw_value=p.raw_value[:255],

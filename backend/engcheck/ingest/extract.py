@@ -5,13 +5,15 @@ from dataclasses import dataclass, field
 from ..core.models import Confidence, DocType, Method, TagClass
 from .headers import match_header
 from .model import Page, ParsedDocument, Table
-from .tagging import classify, find_tags, normalize_tag
-from .units import parse_quantity
+from .tagging import classify, find_tags, normalize_tags
+from .units import is_unit, parse_quantity
 
 HEADER_SCAN_ROWS = 15
 _META = {"tag", "revision", "doc_number"}
 _EMPTY = {"", "-", "–", "—"}
-_REF_RE = re.compile(r"\b([A-Z]{2,5}-[A-Z]{2,5}-\d{3,5})\s*,?\s*Rev\.?\s*([A-Z0-9]{1,3})\b")
+_REF_RE = re.compile(r"\b([A-Z]{2,5}-[A-Z]{2,5}-\d{3,5})\s*,?\s*Rev\.?\s*([A-Z0-9]{1,3})\b", re.IGNORECASE)
+_CELL_CONTEXT = (DocType.EQUIPMENT_LIST, DocType.DATASHEET)
+MAX_SKIPPED = 50
 
 
 @dataclass
@@ -45,6 +47,7 @@ class Extraction:
     params: list[ExtractedParam] = field(default_factory=list)
     refs: list[tuple[str, str, int]] = field(default_factory=list)
     unmapped_headers: list[str] = field(default_factory=list)
+    skipped_tags: list[str] = field(default_factory=list)   # teg ustunidagi tanilmagan qiymatlar
     doc_number: str | None = None
     revision: str | None = None
 
@@ -57,9 +60,20 @@ def _param(tag: str, param: str, text: str, hint: str | None, page_no: int, loca
 
 
 class _Collector:
-    def __init__(self) -> None:
+    def __init__(self, doc_type: DocType) -> None:
         self.ex = Extraction()
+        self.doc_type = doc_type
+        self.cell_texts: list[str] = []   # jadvaldan o'qilgan teg kataklari (matnda qayta qidirilmaydi)
         self._seen: set[tuple[str, int]] = set()
+
+    def cell_class(self, tag: str) -> TagClass:
+        """Uskunalar ro'yxati va datasheetning teg katagi — ko'rinishidan qat'i nazar uskuna."""
+        cls = classify(tag)
+        return TagClass.equipment if cls != TagClass.line and self.doc_type in _CELL_CONTEXT else cls
+
+    def skipped(self, text: str) -> None:
+        if text and text not in self.ex.skipped_tags and len(self.ex.skipped_tags) < MAX_SKIPPED:
+            self.ex.skipped_tags.append(text)
 
     def tag(self, tag: str, cls: TagClass, page_no: int, location: str, method: Method) -> None:
         if (tag, page_no) in self._seen:
@@ -102,17 +116,30 @@ def _columnar(table: Table, doc_type: DocType, page: Page, col: _Collector) -> b
         return True
 
     tag_col = by_param["tag"]
-    for row in table.rows[hrow + 1:]:
+    body = table.rows[hrow + 1:]
+    # Sarlavha ostidagi birliklar qatori ("in | barg | °C") ustunlarga birlik beradi.
+    if body and tag_col < len(body[0]) and not normalize_tags(body[0][tag_col].text):
+        units = {c: body[0][c].text.strip() for c, (param, hint) in mapped.items()
+                 if param not in _META and c < len(body[0]) and is_unit(param, body[0][c].text)}
+        if units:
+            mapped = {c: (param, hint or units.get(c)) for c, (param, hint) in mapped.items()}
+            body = body[1:]
+    for row in body:
         if tag_col >= len(row):
             continue
-        tag = normalize_tag(row[tag_col].text)
-        if tag is None:
+        raw = row[tag_col].text.strip()
+        tags = normalize_tags(raw)
+        if not tags:
+            if raw not in _EMPTY:
+                col.skipped(raw)
             continue
-        col.tag(tag, classify(tag), page.number, row[tag_col].location, Method.cell)
-        for c, (param, hint) in mapped.items():
-            if param in _META or c >= len(row) or row[c].text.strip() in _EMPTY:
-                continue
-            col.ex.params.append(_param(tag, param, row[c].text, hint, page.number, row[c].location))
+        col.cell_texts.append(raw)
+        for tag in tags:   # "P-101A/B" qatori ikkala tegga tegishli
+            col.tag(tag, col.cell_class(tag), page.number, row[tag_col].location, Method.cell)
+            for c, (param, hint) in mapped.items():
+                if param in _META or c >= len(row) or row[c].text.strip() in _EMPTY:
+                    continue
+                col.ex.params.append(_param(tag, param, row[c].text, hint, page.number, row[c].location))
     return True
 
 
@@ -128,9 +155,14 @@ def _key_value(table: Table, page: Page, col: _Collector) -> bool:
     tag = None
     for row, key in pairs:
         if key and key[0] == "tag":
-            tag = normalize_tag(row[1].text)
-            if tag:
-                col.tag(tag, classify(tag), page.number, row[1].location, Method.cell)
+            raw = row[1].text.strip()
+            tags = normalize_tags(raw)
+            if len(tags) == 1:
+                tag = tags[0]
+                col.cell_texts.append(raw)
+                col.tag(tag, col.cell_class(tag), page.number, row[1].location, Method.cell)
+            elif raw not in _EMPTY:
+                col.skipped(raw)
             break
     for row, key in pairs:
         value = row[1].text.strip()
@@ -152,10 +184,13 @@ def _attrs(item, page: Page, col: _Collector) -> None:
     """DXF blok atributlari: kalit–qiymat sifatida."""
     keyed = {k: match_header(k) for k in item.attrs}
     tag_key = next((k for k, m in keyed.items() if m and m[0] == "tag"), None)
-    tag = normalize_tag(item.attrs[tag_key]) if tag_key else None
-    if tag is None:
+    tags = normalize_tags(item.attrs[tag_key]) if tag_key else []
+    if len(tags) != 1:
+        if tag_key and item.attrs[tag_key].strip() not in _EMPTY:
+            col.skipped(item.attrs[tag_key].strip())
         return
-    col.tag(tag, classify(tag), page.number, item.location, Method.cell)
+    tag = tags[0]
+    col.tag(tag, col.cell_class(tag), page.number, item.location, Method.cell)
     for k, m in keyed.items():
         value = item.attrs[k].strip()
         if m is None:
@@ -165,8 +200,9 @@ def _attrs(item, page: Page, col: _Collector) -> None:
 
 
 def extract(doc: ParsedDocument, doc_type: DocType) -> Extraction:
-    col = _Collector()
+    col = _Collector(doc_type)
     for page in doc.pages:
+        col.cell_texts = []
         for table in page.tables:
             if not _columnar(table, doc_type, page, col):
                 _key_value(table, page, col)
@@ -178,10 +214,15 @@ def extract(doc: ParsedDocument, doc_type: DocType) -> Extraction:
             if not item.attrs:
                 for tag, cls in find_tags(item.text):
                     col.tag(tag, cls, page.number, item.location, Method.regex)
-        for tag, cls in find_tags(page.text):
+        # Jadvaldan allaqachon o'qilgan teg kataklari matnda qayta qidirilmaydi:
+        # aks holda "p-101 a" dan soxta "P-101" tegi chiqadi.
+        text = page.text
+        for raw in sorted(set(col.cell_texts), key=len, reverse=True):
+            text = re.sub(re.escape(raw), " " * len(raw), text, flags=re.IGNORECASE)
+        for tag, cls in find_tags(text):
             col.tag(tag, cls, page.number, "text", Method.regex)
         for m in _REF_RE.finditer(page.text):
-            ref = (m.group(1), m.group(2), page.number)
+            ref = (m.group(1).upper(), m.group(2).upper(), page.number)
             if ref not in col.ex.refs:
                 col.ex.refs.append(ref)
     return col.ex

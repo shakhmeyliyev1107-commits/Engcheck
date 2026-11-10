@@ -168,5 +168,8 @@
   "role.admin": "Administrator",
   "role.lead": "Yetakchi muhandis",
   "role.engineer": "Muhandis",
-  "role.viewer": "Kuzatuvchi"
+  "role.viewer": "Kuzatuvchi",
+  "findings.docType": "Hujjat turi",
+  "doc.superseded": "Eskirgan reviziya — tekshiruvda qatnashmaydi",
+  "doc.skippedTags": "Teg ustunidagi tanilmagan qiymatlar (bu qatorlar o‘qilmadi)"
 }

@@ -54,6 +54,10 @@ export function DocumentView() {
       </div>
       <p className="muted">{doc.filename}</p>
       {doc.parse_message && <p className="warn">{doc.parse_message}</p>}
+      {doc.superseded && <p className="warn">{t("doc.superseded")}</p>}
+      {doc.skipped_tags.length > 0 && (
+        <p className="warn" data-testid="skipped-tags">{t("doc.skippedTags")}: {doc.skipped_tags.join(", ")}</p>
+      )}
       <ErrorNote text={fileError} />
 
       {total > 0 && (

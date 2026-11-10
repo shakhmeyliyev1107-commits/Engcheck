@@ -46,7 +46,7 @@ _FLOW = {
     "m3/h": 1.0, "m3/hr": 1.0, "м3/ч": 1.0, "gpm": 0.2271247, "l/s": 3.6, "л/с": 3.6,
     "l/min": 0.06, "л/мин": 0.06,
 }
-_LENGTH = {"mm": 1.0, "мм": 1.0, "in": 25.4, "inch": 25.4, '"': 25.4, "″": 25.4, "m": 1000.0,
+_LENGTH = {"dn": 1.0, "nps": 25.4, "mm": 1.0, "мм": 1.0, "in": 25.4, "inch": 25.4, '"': 25.4, "″": 25.4, "m": 1000.0,
            "м": 1000.0, "cm": 10.0, "см": 10.0}
 _POWER = {"kw": 1.0, "квт": 1.0, "w": 0.001, "вт": 0.001, "mw": 1000.0, "мвт": 1000.0,
           "hp": 0.7456999, "л.с.": 0.7354988}
@@ -69,10 +69,43 @@ class Quantity:
     assumed: bool = False
 
 
+_AMBIGUOUS_RE = re.compile(r"^[+-]?[1-9]\d{0,2},\d{3}$")   # "1,200": 1200 ham, 1.2 ham bo'lishi mumkin
+_GROUPED_RE = re.compile(r"^[+-]?\d{1,3}([.,])\d{3}(\1\d{3})+$")
+_PLACEHOLDERS = {"N/A", "NA", "TBD", "TBA", "HOLD", "LATER", "VTA", "BY VENDOR", "ATM", "AMB",
+                 "AMBIENT", "FV", "-", "–", "—"}
+
+
+def is_placeholder(text: str) -> bool:
+    return (text or "").strip().upper() in _PLACEHOLDERS
+
+
+def is_unit(param: str, text: str) -> bool:
+    """Matn shu parametr turi uchun taniladigan o'lchov birligimi."""
+    kind = PARAM_KIND.get(param, "text")
+    return kind != "text" and bool((text or "").strip()) and _convert(kind, 1.0, text) is not None
+
+
+def _clean_value(raw: str) -> str:
+    s = raw.replace("−", "-")
+    s = re.sub(r"^[–—]\s*(?=\d)", "-", s)
+    s = re.sub(r"^[≤≥<>=~≈]+\s*", "", s)
+    s = re.sub(r"\([^)]*\)", " ", s)                                # (Note 1)
+    s = re.sub(r"\s*/\s*F\.?V\.?\s*$", "", s, flags=re.IGNORECASE)   # "3.5 / FV": to'liq vakuum belgisi
+    return s.strip()
+
+
 def _to_float(text: str) -> float | None:
     s = re.sub(r"[\s ]", "", text)
-    if "," in s and "." in s:
-        s = s.replace(",", "")
+    if _AMBIGUOUS_RE.match(s):
+        return None
+    m = _GROUPED_RE.match(s)
+    if m:
+        s = s.replace(m.group(1), "")
+    elif "," in s and "." in s:
+        if s.rfind(",") > s.rfind("."):
+            s = s.replace(".", "").replace(",", ".")   # 1.200,5
+        else:
+            s = s.replace(",", "")                     # 1,200.5
     else:
         s = s.replace(",", ".")
     try:
@@ -118,10 +151,11 @@ def parse_quantity(text: str, param: str, unit_hint: str | None = None) -> Quant
             n = _to_float(m.group(1))
             return Quantity(raw, n, "NPS", n * 25.4, si_unit, True)
 
-    if _RANGE_RE.search(raw):
-        # Diapazon bitta songa keltirilmaydi va solishtirilmaydi.
+    value = _clean_value(raw)
+    if _RANGE_RE.search(value):
+        # Diapazon bitta songa keltirilmaydi; R007 uni "o'qilmagan qiymat" sifatida ko'rsatadi.
         return Quantity(raw, None, None, None, None, True)
-    m = _VALUE_RE.match(raw)
+    m = _VALUE_RE.match(value)
     number = _to_float(m.group(1)) if m else None
     if number is None:
         return Quantity(raw, None, None, None, None, True)

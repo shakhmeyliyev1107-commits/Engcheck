@@ -86,3 +86,10 @@ def user_for_token(db: Db, token: str) -> User | None:
 def logout(db: Db, token: str) -> None:
     db.query(Session).filter(Session.token_hash == _token_hash(token)).delete()
     db.flush()
+
+
+def set_password(db: Db, user: User, password: str) -> None:
+    """Parolni almashtiradi va foydalanuvchining barcha sessiyalarini bekor qiladi."""
+    user.password_hash = hash_password(password)
+    db.query(Session).filter(Session.user_id == user.id).delete()
+    db.flush()

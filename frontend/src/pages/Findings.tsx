@@ -2,7 +2,7 @@ import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom"
 import { api } from "../api";
 import { SeverityBadge, StatusBadge } from "../components/Badges";
 import { ErrorNote } from "../components/Layout";
-import { SEVERITIES, STATUSES } from "../constants";
+import { DOC_TYPES, SEVERITIES, STATUSES } from "../constants";
 import { useLoad } from "../hooks";
 import { type Key, useI18n } from "../i18n";
 
@@ -53,6 +53,13 @@ export function Findings() {
           <select value={search.get("rule") ?? ""} onChange={(e) => setFilter("rule", e.target.value)}>
             <option value="">{t("common.all")}</option>
             {(rules.data ?? []).map((r) => <option key={r.code} value={r.code}>{r.code} — {r.title}</option>)}
+          </select>
+        </label>
+        <label className="field">
+          {t("findings.docType")}
+          <select value={search.get("doc_type") ?? ""} onChange={(e) => setFilter("doc_type", e.target.value)} data-testid="filter-doctype">
+            <option value="">{t("common.all")}</option>
+            {DOC_TYPES.map((d) => <option key={d} value={d}>{t(`doctype.${d}` as Key)}</option>)}
           </select>
         </label>
         {search.get("document_id") && <span className="note">{t("findings.forDocument")}</span>}
