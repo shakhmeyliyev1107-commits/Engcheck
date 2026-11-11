@@ -41,8 +41,10 @@ def create_app(settings: Settings, frontend_dist: Path | None = FRONTEND_DIST) -
     async def host_guard(request: Request, call_next):
         """Begona Host sarlavhali so'rovni rad etadi (DNS rebinding: brauzerdagi begona sahifa lokal xizmatga murojaat qila olmasin)."""
         host = request.headers.get("host", "").lower()
-        name = host.rsplit(":", 1)[0] if not host.endswith("]") else host
-        if name not in allowed_hosts:
+        name, sep, port = host.rpartition(":") if not host.endswith("]") else (host, "", "")
+        if not sep:
+            name, port = host, ""
+        if name not in allowed_hosts or (sep and not port.isdigit()):
             return _error(request, 400, "bad_host")
         return await call_next(request)
 

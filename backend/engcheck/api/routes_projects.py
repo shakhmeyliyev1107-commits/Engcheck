@@ -102,15 +102,23 @@ def export_project(project_id: int, request: Request, body: ExportBody | None = 
 @router.post("/projects/import", status_code=201)
 def import_project(request: Request, file: UploadFile = File(...), passphrase: str | None = Form(None),
                    user: User = Depends(require(Perm.upload)), db: Db = Depends(get_db)):
-    chunks, size = [], 0
-    while chunk := file.file.read(1 << 20):
-        size += len(chunk)
-        if size > MAX_UPLOAD:
-            raise ApiError(422, "pkg_too_large")
-        chunks.append(chunk)
+    import os
+    import tempfile
+    from pathlib import Path
+    fd, tmp = tempfile.mkstemp(suffix=".engpkg")
     try:
-        result = pkg.import_project(db, request.app.state.settings, user, b"".join(chunks), passphrase or None)
-    except pkg.PackageError as exc:
-        raise ApiError(422, f"pkg_{exc.code}") from exc
+        size = 0
+        with os.fdopen(fd, "wb") as out:   # paket diskka yoziladi: katta fayl xotirani to'ldirmaydi
+            while chunk := file.file.read(1 << 20):
+                size += len(chunk)
+                if size > MAX_UPLOAD:
+                    raise ApiError(422, "pkg_too_large")
+                out.write(chunk)
+        try:
+            result = pkg.import_project(db, request.app.state.settings, user, Path(tmp), passphrase or None)
+        except pkg.PackageError as exc:
+            raise ApiError(422, f"pkg_{exc.code}") from exc
+    finally:
+        Path(tmp).unlink(missing_ok=True)
     return {"project": project_out(db.get(Project, result.project_id)), "documents": result.documents,
             "decisions_restored": result.decisions_restored, "decisions_unmatched": result.decisions_unmatched}

@@ -64,3 +64,21 @@ test("navigatsiya faqat o'z xizmatimizga ruxsat etiladi", () => {
     assert.equal(isAppUrl(url, 5000), false, url);
   }
 });
+
+test("qobiq yo'qolsa (stdin uzilsa) xizmat o'zi to'xtaydi va onExit chaqiriladi", async () => {
+  let exited = null;
+  const b = await startBackend({ command: "python", args: ["-m", "engcheck"], cwd: BACKEND_DIR, dataDir: tmp(), env,
+                                 onExit: (code) => { exited = { code }; } });
+  b.process.stdin.end();                       // ota jarayon yiqilganini taqlid qiladi
+  await new Promise((resolve) => b.process.once("exit", resolve));
+  assert.equal(await ping(b.port, 500), false);
+  assert.ok(exited, "onExit chaqirilmadi");
+});
+
+test("oddiy to'xtatishda onExit chaqirilmaydi", async () => {
+  let called = false;
+  const b = await startBackend({ command: "python", args: ["-m", "engcheck"], cwd: BACKEND_DIR, dataDir: tmp(), env,
+                                 onExit: () => { called = true; } });
+  await b.stop();
+  assert.equal(called, false);
+});

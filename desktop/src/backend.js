@@ -19,17 +19,24 @@ function ping(port, timeoutMs = 2000) {
 
 /**
  * Xizmatni ishga tushiradi va tayyor bo'lguncha kutadi.
- * @param {{command: string, args?: string[], dataDir: string, cwd?: string, env?: object, timeoutMs?: number}} options
+ * @param {{command: string, args?: string[], dataDir: string, cwd?: string, env?: object, timeoutMs?: number,
+ *          onExit?: (code: number|null) => void}} options  onExit — xizmat ish paytida kutilmaganda to'xtasa chaqiriladi
  * @returns {Promise<{port: number, process: import("node:child_process").ChildProcess, stop: () => Promise<void>}>}
  */
 function startBackend(options) {
-  const { command, args = [], dataDir, cwd, env = process.env, timeoutMs = START_TIMEOUT_MS } = options;
+  const { command, args = [], dataDir, cwd, env = process.env, timeoutMs = START_TIMEOUT_MS, onExit } = options;
   return new Promise((resolve, reject) => {
     let settled = false;
     let stderr = "";
     let buffer = "";
     // --port 0: xizmat bo'sh portni o'zi tanlaydi va stdout ga {"event":"ready","port":N} yozadi.
-    const child = spawn(command, [...args, "--port", "0", "--data-dir", dataDir], { cwd, env, stdio: ["ignore", "pipe", "pipe"] });
+    const child = spawn(command, [...args, "--port", "0", "--data-dir", dataDir], {
+      cwd,
+      // stdin quvuri ochiq turadi: qobiq yopilsa yoki yiqilsa, quvur uziladi va xizmat o'zi to'xtaydi.
+      env: { ...env, ENGCHECK_EXIT_WITH_PARENT: "1" },
+      stdio: ["pipe", "pipe", "pipe"],
+    });
+    child.stdin.on("error", () => {});
 
     const fail = (error) => {
       if (settled) return;
@@ -59,11 +66,19 @@ function startBackend(options) {
           return;
         }
         if (event.event === "ready" && Number.isInteger(event.port) && !settled) {
-          if (!(await ping(event.port))) { fail(new Error("Xizmat tayyor deb xabar berdi, lekin javob bermayapti.")); return; }
+          let alive = false;
+          for (let i = 0; i < 10 && !alive && !settled; i++) {   // bir necha soniya ichida qayta urinish
+            alive = await ping(event.port);
+            if (!alive) await new Promise((r) => setTimeout(r, 300));
+          }
+          if (settled) return;
+          if (!alive) { fail(new Error("Xizmat tayyor deb xabar berdi, lekin javob bermayapti.")); return; }
           settled = true;
           clearTimeout(timer);
           child.removeAllListeners("exit");
-          resolve({ port: event.port, process: child, stop: () => stopBackend(child) });
+          let stopping = false;
+          child.on("exit", (code) => { if (!stopping && onExit) onExit(code); });
+          resolve({ port: event.port, process: child, stop: () => { stopping = true; return stopBackend(child); } });
         }
       }
     });

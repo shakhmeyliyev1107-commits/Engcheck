@@ -1,5 +1,6 @@
 """Bazani SQLCipher bilan shifrlash: ochish, holatni aniqlash, ochiq bazani ko'chirish."""
 import secrets
+import shutil
 import sqlite3
 from pathlib import Path
 
@@ -52,6 +53,9 @@ def open_database(settings: Settings, store: SecretStore) -> tuple[sessionmaker,
     """
     path, module = settings.db_path, sqlcipher_module()
     exists = path.exists() and path.stat().st_size > 0
+    if not exists and any(path.with_name(path.name + ext).exists() for ext in (".encrypting", ".plain.bak")):
+        # encrypt-db o'rtada uzilgan: bo'sh yangi baza yaratib, eski ma'lumotni "yo'qotib" qo'ymaymiz.
+        raise DatabaseLocked("bazani shifrlash tugallanmagan: engcheck.db.plain.bak faylini engcheck.db ga qaytaring")
     if exists and is_plain(path):
         return init_db(settings.db_url), False
     if exists:
@@ -86,17 +90,23 @@ def encrypt_database(settings: Settings, store: SecretStore) -> Path:
     key = store.get(KEY_NAME) or secrets.token_hex(32)
     store.set(KEY_NAME, key)
     target = path.with_name(path.name + ".encrypting")
-    target.unlink(missing_ok=True)
-    con = module.connect(str(path))
-    try:
-        con.execute("ATTACH DATABASE ? AS encrypted KEY ?", (str(target), f"x'{key}'"))
-        con.execute("SELECT sqlcipher_export('encrypted')")
-        con.execute("DETACH DATABASE encrypted")
-    finally:
-        con.close()
-    _verify(path, target, key, module)
     backup = path.with_name(path.name + ".plain.bak")
-    path.replace(backup)
+    target.unlink(missing_ok=True)
+    try:
+        con = module.connect(str(path))
+        try:
+            con.execute("ATTACH DATABASE ? AS encrypted KEY ?", (str(target), f"x'{key}'"))
+            con.execute("SELECT sqlcipher_export('encrypted')")
+            con.execute("DETACH DATABASE encrypted")
+        finally:
+            con.close()
+        _verify(path, target, key, module)
+    except BaseException:
+        target.unlink(missing_ok=True)   # asl baza joyida, o'zgarmagan holda qoladi
+        raise
+    # Avval ochiq nusxa zaxiraga nusxalanadi, keyin BITTA atomik almashtirish: istalgan paytda uzilsa ham
+    # engcheck.db yo ochiq, yo shifrlangan to'liq baza bo'ladi.
+    shutil.copy2(path, backup)
     target.replace(path)
     return backup
 

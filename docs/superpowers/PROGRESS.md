@@ -15,16 +15,25 @@ Foydalanuvchi ko'rsatmasi (2026-11-10): "o'zing to'g'ri deb bilganday tartib bil
 |---|---|---|
 | 1 | Yadro va tekshiruv dvigateli | `main` da |
 | 2 | AI provayderlari, bilimlar bazasi (RAG) | `main` da (ko'rikdan o'tgan, tuzatilgan) |
-| 3 | Desktop qobiq (Electron), baza shifrlash, loyiha paketini eksport/import | `feat/sikl-3` (GitHub'da): kod tayyor, yakuniy ko'rik kutilmoqda |
+| 3 | Desktop qobiq (Electron), baza shifrlash, loyiha paketini eksport/import | `main` da (ko'rikdan o'tgan, tuzatilgan) |
 | 4 | Prinsipial sxema generatori **va tahrirlagichi** | boshlanmagan |
 | 5 | 3D joylashuv modeli **va tahrirlash** | boshlanmagan |
 
 ## Hozirgi qadam
-3-sikl ko'rigi: tekshiruvchi natijasini kutish → Critical/Important ni test bilan tuzatish →
-`main` ga `--no-ff` merge → `git push origin main` → 4-sikl (prinsipial sxema generatori va tahrirlagichi;
-talab spetsifikatsiyada: `specs/2026-11-10-engcheck-yadro-va-tekshiruv-design.md`, "4- va 5-sikllar uchun qo'shimcha talab").
-Tekshiruvchi javob bermasa (limit): `git diff main..feat/sikl-3` ni o'zim ko'rib chiqaman
-(paket importi: yo'l hujumi, zip-bomba, tranzaksiya; shifrlash: kalit, ko'chirish; Host himoyasi; Electron sozlamalari).
+4-siklni boshlash: `feat/sikl-4` shoxi. Prinsipial sxema generatori va tahrirlagichi.
+Talab: `specs/2026-11-10-engcheck-yadro-va-tekshiruv-design.md`, "4- va 5-sikllar uchun qo'shimcha talab"
+(generator natijasi va muhandis tahriri alohida qatlamlarda; tahrir qayta yaratishda yo'qolmaydi; audit;
+orqaga qaytarish; asl hujjatlar o'zgarmaydi; tahrir va hujjatlar farqi topilma sifatida).
+Kirish ma'lumoti: `tags` (uskuna, quvur), `tag_params`, DXF koordinatalari (`tag_occurrences.location`).
+Chiqish: SVG blok-sxema (uskunalar tugun, quvurlar qirra); interfeysda sudrab ko'chirish, qo'shish, o'chirish, ulash.
+
+## 3-sikldan qolgan
+- O'rnatuvchini yig'ish (PyInstaller + electron-builder) sinalmagan; kod imzolash yo'q.
+- Yuklangan asl fayllar diskda shifrlanmaydi.
+- Shifrlangan paket importi butun faylni xotiraga oladi (1 GiB gacha).
+- `encrypt-db` ilova ishlab turganda bajarilsa, ilova yozishda xato beradi (README: avval to'xtating).
+- ~/.engcheck dagi eski ma'lumot desktop ilovaning userData papkasiga avtomatik ko'chmaydi.
+- Paket parolining eng kichik uzunligi talab qilinmaydi.
 
 ## 2-sikldan qolgan mayda kamchiliklar
 - Har so'rovda provayder obyekti qayta quriladi va yopilmaydi; `ai-status` har safar ping qiladi (kesh kerak).

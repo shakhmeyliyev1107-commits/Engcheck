@@ -9,6 +9,7 @@ import io
 import json
 import os
 import re
+import shutil
 import tempfile
 import zipfile
 from dataclasses import dataclass
@@ -29,7 +30,10 @@ FORMAT = 1
 MAGIC = b"ENGPKG1\n"            # parol bilan shifrlangan paket sarlavhasi
 MAX_TOTAL_BYTES = 2 * 1024 ** 3  # ochilgan hajm chegarasi
 MAX_FILES = 2000
-RESTORED = ("confirmed", "rejected", "fixed", "reviewed")
+RESTORED = ("confirmed", "rejected", "fixed")
+MAX_MANIFEST_BYTES = 20 * 1024 * 1024
+MAX_ACTIONS = 50                 # bitta qaror uchun tiklanadigan tarix yozuvlari
+_CONTROL = re.compile(r"[\x00-\x1f\x7f]")
 _SAFE_PATH = re.compile(r"^files/[0-9a-f]{64}(\.[A-Za-z0-9]{1,8})?$")
 
 
@@ -97,7 +101,17 @@ def export_project(db: Db, settings: Settings, project_id: int, user: User | Non
     return data
 
 
-def _open(data: bytes, passphrase: str | None) -> zipfile.ZipFile:
+def _open(data: bytes | Path, passphrase: str | None) -> zipfile.ZipFile:
+    """Paketni ochadi. Parolsiz paket fayl yo'li bilan berilsa, xotiraga to'liq o'qilmaydi."""
+    if isinstance(data, Path):
+        with open(data, "rb") as f:
+            encrypted = f.read(len(MAGIC)) == MAGIC
+        if not encrypted:
+            try:
+                return zipfile.ZipFile(data)
+            except (zipfile.BadZipFile, ValueError, OSError) as exc:
+                raise PackageError("invalid_package") from exc
+        data = data.read_bytes()   # shifrlangan paket butunligicha ochiladi (Fernet oqimli emas)
     if data.startswith(MAGIC):
         if not passphrase:
             raise PackageError("passphrase_required")
@@ -112,92 +126,160 @@ def _open(data: bytes, passphrase: str | None) -> zipfile.ZipFile:
         raise PackageError("invalid_package") from exc
 
 
+def _text(value, limit: int, required: bool = True) -> str | None:
+    """Manifest maydoni: satr, boshqaruv belgilarisiz, uzunligi cheklangan. Aks holda ValueError."""
+    if value is None and not required:
+        return None
+    if not isinstance(value, str) or _CONTROL.search(value) or len(value) > limit or (required and not value.strip()):
+        raise ValueError
+    return value
+
+
 def _manifest(z: zipfile.ZipFile) -> dict:
-    infos = z.infolist()
-    # Hajm ochishdan OLDIN, sarlavhadagi e'lon qilingan o'lchamlar bo'yicha tekshiriladi (zip-bomba).
-    if len(infos) > MAX_FILES + 1 or sum(i.file_size for i in infos) > MAX_TOTAL_BYTES:
+    """Manifestni o'qiydi va HAR maydonni tekshiradi. Noto'g'ri narsa — PackageError, boshqa istisno emas."""
+    try:
+        infos = z.infolist()
+        sizes = {i.filename: i.file_size for i in infos}
+    except Exception as exc:
+        raise PackageError("invalid_package") from exc
+    # Hajm ochishdan OLDIN e'lon qilingan o'lchamlar bo'yicha; haqiqiy hajm o'qish paytida yana tekshiriladi.
+    if len(infos) > MAX_FILES + 1 or sum(sizes.values()) > MAX_TOTAL_BYTES:
+        raise PackageError("too_large")
+    if sizes.get("manifest.json", 0) > MAX_MANIFEST_BYTES:
         raise PackageError("too_large")
     try:
-        manifest = json.loads(z.read("manifest.json"))
-    except (KeyError, ValueError, zipfile.BadZipFile) as exc:
+        with z.open("manifest.json") as f:
+            raw = f.read(MAX_MANIFEST_BYTES + 1)
+        if len(raw) > MAX_MANIFEST_BYTES:
+            raise PackageError("too_large")
+        manifest = json.loads(raw)
+    except PackageError:
+        raise
+    except Exception as exc:   # buzilgan oqim, noto'g'ri JSON, haddan tashqari ichma-ich tuzilma va h.k.
         raise PackageError("invalid_package") from exc
     if not isinstance(manifest, dict) or not isinstance(manifest.get("format"), int):
         raise PackageError("invalid_package")
     if manifest["format"] != FORMAT:
         raise PackageError("unsupported_format")
-    project, documents = manifest.get("project"), manifest.get("documents")
     try:
-        if not str(project["name"]).strip():
+        project, documents = manifest["project"], manifest["documents"]
+        decisions = manifest.get("decisions", [])
+        if not isinstance(project, dict) or not isinstance(documents, list) or not isinstance(decisions, list):
             raise ValueError
-        Stage(project["stage"])
-        str(project["industry"])
-        names = set(z.namelist())
+        if len(documents) > MAX_FILES:
+            raise PackageError("too_large")
+        _text(project["name"], 200); _text(project["industry"], 40); Stage(project["stage"])
+        seen_paths, seen_sha = set(), set()
         for d in documents:
+            if not isinstance(d, dict):
+                raise ValueError
             DocType(d["doc_type"]); Discipline(d["discipline"])
-            # Yo'l faqat files/<sha256>[.kengaytma] ko'rinishida bo'lishi mumkin: "../" va mutlaq yo'llar o'tmaydi.
-            if not _SAFE_PATH.match(d["path"]) or d["path"] not in names or not re.fullmatch(r"[0-9a-f]{64}", d["sha256"]):
+            path, sha = _text(d["path"], 100), _text(d["sha256"], 64)
+            # Yo'l faqat files/<sha256>[.kengaytma]: "../" va mutlaq yo'llar o'tmaydi. Takror yozuvlar rad etiladi.
+            if (not _SAFE_PATH.match(path) or path not in sizes or not re.fullmatch(r"[0-9a-f]{64}", sha)
+                    or path in seen_paths or sha in seen_sha):
                 raise ValueError
-            if not str(d["filename"]).strip():
+            seen_paths.add(path); seen_sha.add(sha)
+            name = Path(_text(d["filename"], 255).replace("\\", "/")).name
+            if not name or len(Path(name).suffix) > 9:
                 raise ValueError
-        if not isinstance(manifest.get("decisions", []), list):
-            raise ValueError
+            _text(d.get("doc_number"), 64, required=False); _text(d.get("revision"), 16, required=False)
+        for decision in decisions:
+            if not isinstance(decision, dict) or not isinstance(decision.get("fingerprint"), str):
+                raise ValueError
+            if not isinstance(decision.get("status"), str) or not isinstance(decision.get("actions", []), list):
+                raise ValueError
+            for action in decision.get("actions", []):
+                if not isinstance(action, dict):
+                    raise ValueError
+                for key in ("user", "comment"):
+                    if action.get(key) is not None and not isinstance(action[key], str):
+                        raise ValueError
+    except PackageError:
+        raise
     except (KeyError, TypeError, ValueError) as exc:
         raise PackageError("invalid_package") from exc
     return manifest
 
 
-def import_project(db: Db, settings: Settings, user: User | None, data: bytes,
+def _stream(z: zipfile.ZipFile, path: str, budget: list[int], out=None) -> str:
+    """Faylni bo'laklab o'qiydi (xotiraga to'liq olmaydi), SHA-256 ni qaytaradi; out berilsa, unga yozadi.
+
+    budget — qolgan ruxsat etilgan bayt: sarlavha yolg'on gapirsa ham haqiqiy hajm cheklanadi.
+    """
+    digest = hashlib.sha256()
+    try:
+        with z.open(path) as f:
+            while chunk := f.read(1 << 20):
+                budget[0] -= len(chunk)
+                if budget[0] < 0:
+                    raise PackageError("too_large")
+                digest.update(chunk)
+                if out is not None:
+                    out.write(chunk)
+    except PackageError:
+        raise
+    except Exception as exc:   # zlib.error, BadZipFile, RuntimeError (shifrlangan yozuv), EOFError ...
+        raise PackageError("invalid_package") from exc
+    return digest.hexdigest()
+
+
+def import_project(db: Db, settings: Settings, user: User | None, data: bytes | Path,
                    passphrase: str | None = None) -> ImportResult:
-    """Paketdan yangi loyiha yaratadi. Xato bo'lsa hech narsa qolmaydi (chaqiruvchi tranzaksiyani qaytaradi)."""
+    """Paketdan yangi loyiha yaratadi.
+
+    Avval barcha fayllar tekshiriladi (hech narsa yozilmaydi). Yozish boshlangach xato chiqsa,
+    nusxalangan fayllar o'chiriladi; bazadagi o'zgarishlarni chaqiruvchi tranzaksiyani qaytarib bekor qiladi.
+    """
     z = _open(data, passphrase)
     manifest = _manifest(z)
-    # Avval BARCHA fayllar tekshiriladi, keyingina bazaga yoziladi.
-    blobs: list[tuple[dict, bytes]] = []
-    for d in manifest["documents"]:
-        try:
-            blob = z.read(d["path"])
-        except (zipfile.BadZipFile, OSError, RuntimeError) as exc:
-            raise PackageError("invalid_package") from exc
-        if hashlib.sha256(blob).hexdigest() != d["sha256"]:
+    budget = [MAX_TOTAL_BYTES]
+    for d in manifest["documents"]:   # 1-o'tish: faqat tekshirish
+        if _stream(z, d["path"], budget) != d["sha256"]:
             raise PackageError("checksum_mismatch")
-        blobs.append((d, blob))
 
     meta = manifest["project"]
-    project = Project(name=str(meta["name"]).strip()[:200], industry=str(meta["industry"])[:40],
-                      stage=Stage(meta["stage"]), created_by=user.id if user else None,
+    project = Project(name=meta["name"].strip(), industry=meta["industry"], stage=Stage(meta["stage"]),
+                      created_by=user.id if user else None,
                       allow_cloud_ai=False)   # bulut roziligi hech qachon ko'chmaydi
     db.add(project)
     db.flush()
     uid = user.id if user else None
-    for d, blob in blobs:
-        filename = Path(str(d["filename"]).replace("\\", "/")).name[:255] or "file"
-        fd, tmp = tempfile.mkstemp(suffix=Path(filename).suffix)
-        try:
-            with os.fdopen(fd, "wb") as out:
-                out.write(blob)
-            ingest_file(db, settings, project.id, uid, Path(tmp), filename, DocType(d["doc_type"]),
-                        Discipline(d["discipline"]), d.get("doc_number") or None, d.get("revision") or None)
-        except DuplicateDocument:
-            pass   # manifestda bir fayl ikki marta kelsa, bittasi olinadi
-        finally:
-            Path(tmp).unlink(missing_ok=True)
+    project_files = settings.files_dir / str(project.id)
+    try:
+        ingested = 0
+        for d in manifest["documents"]:   # 2-o'tish: bittadan ochib, qabul qilish
+            filename = Path(d["filename"].replace("\\", "/")).name
+            fd, tmp = tempfile.mkstemp(suffix=Path(filename).suffix)
+            try:
+                with os.fdopen(fd, "wb") as out:
+                    _stream(z, d["path"], [MAX_TOTAL_BYTES], out)
+                ingest_file(db, settings, project.id, uid, Path(tmp), filename, DocType(d["doc_type"]),
+                            Discipline(d["discipline"]), d.get("doc_number") or None, d.get("revision") or None)
+                ingested += 1
+            except DuplicateDocument:
+                pass
+            finally:
+                Path(tmp).unlink(missing_ok=True)
 
-    run = run_review(db, project.id, uid)
-    by_fingerprint = {f.fingerprint: f for f in db.query(Finding).filter_by(run_id=run.id)}
-    restored = unmatched = 0
-    for decision in manifest.get("decisions", []):
-        finding = by_fingerprint.get(decision.get("fingerprint")) if isinstance(decision, dict) else None
-        if finding is None or decision.get("status") not in RESTORED:
-            unmatched += 1   # hujjatlar bir xil bo'lsa bu bo'lmaydi; bo'lsa — hisobotda ko'rsatiladi
-            continue
-        finding.status = FindingStatus(decision["status"])
-        for a in decision.get("actions") or []:
-            if isinstance(a, dict):
+        run = run_review(db, project.id, uid)
+        by_fingerprint = {f.fingerprint: f for f in db.query(Finding).filter_by(run_id=run.id)}
+        restored = unmatched = 0
+        for decision in manifest.get("decisions", []):
+            finding = by_fingerprint.get(decision["fingerprint"])
+            if finding is None or decision["status"] not in RESTORED:
+                unmatched += 1   # hujjatlar bir xil bo'lsa bu bo'lmaydi; bo'lsa — hisobotda ko'rsatiladi
+                continue
+            finding.status = FindingStatus(decision["status"])
+            for a in decision.get("actions", [])[-MAX_ACTIONS:]:
                 finding.actions.append(FindingAction(
                     user_id=uid, action="imported",
                     comment=f"{a.get('user') or '—'}: {a.get('comment') or ''}"[:2000]))
-        restored += 1
-    db.flush()
+            restored += 1
+        db.flush()
+    except BaseException:
+        shutil.rmtree(project_files, ignore_errors=True)   # yarim import qilingan maxfiy fayllar diskda qolmasin
+        raise
     audit.record(db, uid, "project.import", "project", project.id,
-                 {"documents": len(blobs), "decisions_restored": restored, "decisions_unmatched": unmatched})
-    return ImportResult(project.id, len(blobs), restored, unmatched)
+                 {"documents": ingested, "decisions_restored": restored, "decisions_unmatched": unmatched})
+    return ImportResult(project.id, ingested, restored, unmatched)

@@ -5,6 +5,7 @@ const path = require("node:path");
 const { startBackend, isAppUrl } = require("./backend");
 
 let backend = null;
+let mainWindow = null;
 
 /** Yig'ilgan ilovada — birga kelgan `engcheck-server`; ishlab chiqishda — `python -m engcheck`. */
 function backendCommand() {
@@ -18,7 +19,15 @@ function backendCommand() {
 
 async function createWindow() {
   try {
-    backend = await startBackend({ ...backendCommand(), dataDir: path.join(app.getPath("userData"), "data") });
+    backend = await startBackend({
+      ...backendCommand(),
+      dataDir: path.join(app.getPath("userData"), "data"),
+      onExit: (code) => {   // xizmat ish paytida to'xtab qolsa, foydalanuvchi jim osilgan oynani ko'rmasin
+        backend = null;
+        dialog.showErrorBox("EngCheck xizmati to'xtab qoldi", `Xizmat kutilmaganda to'xtadi (kod ${code}). Ilovani qayta oching.`);
+        app.quit();
+      },
+    });
   } catch (error) {
     dialog.showErrorBox("EngCheck ishga tushmadi", String(error.message || error));
     app.quit();
@@ -28,6 +37,8 @@ async function createWindow() {
     width: 1360, height: 880, minWidth: 900, minHeight: 600, title: "EngCheck",
     webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true },
   });
+  mainWindow = win;
+  win.on("closed", () => { mainWindow = null; });
   win.removeMenu();
   const port = backend.port;
   // Tashqi havolalar tizim brauzerida ochiladi; oyna faqat o'z xizmatimizni ko'rsatadi.
@@ -51,7 +62,14 @@ app.on("web-contents-created", (_e, contents) => {
   contents.on("will-attach-webview", (event) => event.preventDefault());
 });
 if (!app.requestSingleInstanceLock()) app.quit();
-else app.whenReady().then(createWindow);
+else {
+  app.on("second-instance", () => {   // ilova qayta ochilsa, mavjud oyna oldinga chiqadi
+    if (!mainWindow) return;
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.focus();
+  });
+  app.whenReady().then(createWindow);
+}
 
 app.on("window-all-closed", () => app.quit());
 app.on("before-quit", (event) => {
