@@ -20,6 +20,17 @@ export function ProjectPage() {
   const docs = useLoad(() => api.documents(id), [id]);
   const ai = useLoad(() => api.aiStatus(id), [id]);
   const [useAi, setUseAi] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [exportPass, setExportPass] = useState("");
+  const [importNote] = useState(() => {
+    try {
+      const note = window.sessionStorage.getItem("engcheck.importNote");
+      window.sessionStorage.removeItem("engcheck.importNote");
+      return note;
+    } catch {
+      return null;
+    }
+  });
   const [uploading, setUploading] = useState(false);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -84,6 +95,7 @@ export function ProjectPage() {
         </div>
       </div>
       <ErrorNote text={error ?? project.error ?? dash.error ?? docs.error} />
+      {importNote && <p className="note" data-testid="import-note">{importNote}</p>}
 
       {d && (
         <>
@@ -198,6 +210,33 @@ export function ProjectPage() {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+      {can(user, "manage_kb") && (
+        <div className="panel" style={{ marginTop: 24 }}>
+          <strong>{t("pkg.export")}</strong>
+          <p className="muted">{t("pkg.exportHint")}</p>
+          {exporting ? (
+            <div className="filters">
+              <label className="field">{t("pkg.passphrase")}<input type="password" value={exportPass} onChange={(e) => setExportPass(e.target.value)} autoComplete="new-password" data-testid="export-pass" /></label>
+              <button className="primary" data-testid="export-download" onClick={async () => {
+                try {
+                  const url = URL.createObjectURL(await api.exportProject(id, exportPass));
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = `${project.data?.name ?? "project"}.engpkg`;
+                  a.click();
+                  setTimeout(() => URL.revokeObjectURL(url), 10_000);
+                  setExporting(false);
+                  setExportPass("");
+                } catch (err) {
+                  setError(errorText(err));
+                }
+              }}>{t("pkg.download")}</button>
+              <button onClick={() => setExporting(false)}>{t("common.cancel")}</button>
+              <p className="muted" style={{ flexBasis: "100%", margin: 0 }}>{t("pkg.passphraseHint")}</p>
+            </div>
+          ) : <button onClick={() => setExporting(true)} data-testid="export-open">{t("pkg.export")}</button>}
         </div>
       )}
       {can(user, "delete_project") && (

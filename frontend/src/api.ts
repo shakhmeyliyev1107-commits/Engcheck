@@ -127,6 +127,14 @@ export const api = {
   fileBlob: async (id: number) => (await request("GET", `/documents/${id}/file`)).blob(),
   runReview: (id: number, useAi = false) => json<RunInfo>("POST", `/projects/${id}/reviews`, { use_ai: useAi }),
   setAllowCloud: (id: number, value: boolean) => json<Project>("PATCH", `/projects/${id}`, { allow_cloud_ai: value }),
+  exportProject: async (id: number, passphrase: string) => (await request("POST", `/projects/${id}/export`, { passphrase: passphrase || null })).blob(),
+  importProject: (file: File, passphrase: string) => {
+    const form = new FormData();
+    form.append("file", file);
+    if (passphrase) form.append("passphrase", passphrase);
+    return json<{ project: Project; documents: number; decisions_restored: number; decisions_unmatched: number }>("POST", "/projects/import", form);
+  },
+  system: () => json<{ version: string; db_encrypted: boolean; encryption_available: boolean; secret_backend: string; files_encrypted: boolean }>("GET", "/system"),
   aiStatus: (id: number) => json<AiStatus>("GET", `/projects/${id}/ai-status`),
   aiProviders: () => json<AiProvider[]>("GET", "/ai/providers"),
   createAiProvider: (body: Record<string, string | null>) => json<AiProvider>("POST", "/ai/providers", body),

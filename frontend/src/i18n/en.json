@@ -257,5 +257,20 @@
   "dash.kb": "Knowledge-base sources",
   "dash.kbPending": "{count} awaiting approval",
   "dash.aiFindings": "AI findings (unconfirmed)",
-  "ai.lastRun.interrupted": "The AI review stopped early: {reason}. Findings made up to that point were kept."
+  "ai.lastRun.interrupted": "The AI review stopped early: {reason}. Findings made up to that point were kept.",
+  "pkg.export": "Export project",
+  "pkg.exportHint": "The package contains the original documents and the decisions on findings. API keys, users, the knowledge base and AI results are not included.",
+  "pkg.passphrase": "Passphrase (optional)",
+  "pkg.passphraseHint": "With a passphrase the package is encrypted. Without one it is only protected against damage — it can be opened, read and altered.",
+  "pkg.download": "Download package",
+  "pkg.import": "Import project",
+  "pkg.file": "Package file (.engpkg)",
+  "pkg.imported": "Imported: {documents} document(s), {restored} decision(s) restored, {unmatched} decision(s) had no matching finding.",
+  "sys.title": "Data protection",
+  "sys.dbEncrypted": "Database is encrypted (SQLCipher)",
+  "sys.dbPlain": "The database is not encrypted. To encrypt it, stop the application and run “python -m engcheck encrypt-db”.",
+  "sys.dbUnavailable": "The database is not encrypted: the encryption library (sqlcipher3) is not installed.",
+  "sys.keyring": "Keys are kept in the operating system's key store.",
+  "sys.keyFile": "Keys are kept in a file inside the data folder. This protects a leaked copy of the database, but not against someone who can read the whole folder. For full protection enable the OS key store (keyring).",
+  "sys.filesPlain": "Uploaded original documents are not encrypted on disk. For confidential projects encrypt the disk (BitLocker, FileVault, LUKS)."
 }

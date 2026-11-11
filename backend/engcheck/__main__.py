@@ -51,9 +51,10 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps({"event": "error", "code": "database_locked", "detail": str(exc)}), flush=True)
         return 2
 
-    @app.on_event("startup")
     async def _ready():   # desktop qobiq shu satrni kutadi
         print(json.dumps({"event": "ready", "port": settings.port}), flush=True)
+
+    app.router.on_startup.append(_ready)
 
     print(f"EngCheck: http://{settings.host}:{settings.port}  (ma'lumotlar: {settings.data_dir})", file=sys.stderr)
     uvicorn.run(app, host=settings.host, port=settings.port, log_level="warning")

@@ -1,6 +1,7 @@
 """Baza ulanishi."""
 from sqlalchemy import create_engine, event, inspect, text
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
+from sqlalchemy.pool import QueuePool
 
 
 class Base(DeclarativeBase):
@@ -15,11 +16,14 @@ def init_db(db_url: str, key: str | None = None, module=None) -> sessionmaker:
     from . import models  # noqa: F401  (jadvallar ro'yxatdan o'tishi uchun)
 
     if key is not None:
+        from sqlalchemy.engine import URL
         path = db_url.removeprefix("sqlite:///")
-        engine = create_engine(f"sqlite+pysqlcipher://:{key}@/{path}", module=module,
-                               connect_args={"check_same_thread": False})
+        # Kalit — tasodifiy 256 bit, "xom kalit" ko'rinishida beriladi: har ulanishda parol hisobi (KDF) bajarilmaydi.
+        url = URL.create("sqlite+pysqlcipher", password=f"x'{key}'", database=path)
+        # QueuePool aniq ko'rsatiladi: bu dialektning standart hovuzi oqimlar ko'payganda ishlatilayotgan ulanishni yopib qo'yadi.
+        engine = create_engine(url, module=module, poolclass=QueuePool, connect_args={"check_same_thread": False})
     else:
-        engine = create_engine(db_url, connect_args={"check_same_thread": False})
+        engine = create_engine(db_url, poolclass=QueuePool, connect_args={"check_same_thread": False})
 
     @event.listens_for(engine, "connect")
     def _fk_on(dbapi_conn, _):

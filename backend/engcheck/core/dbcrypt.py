@@ -89,7 +89,7 @@ def encrypt_database(settings: Settings, store: SecretStore) -> Path:
     target.unlink(missing_ok=True)
     con = module.connect(str(path))
     try:
-        con.execute("ATTACH DATABASE ? AS encrypted KEY ?", (str(target), key))
+        con.execute("ATTACH DATABASE ? AS encrypted KEY ?", (str(target), f"x'{key}'"))
         con.execute("SELECT sqlcipher_export('encrypted')")
         con.execute("DETACH DATABASE encrypted")
     finally:
@@ -106,7 +106,7 @@ def _verify(plain: Path, encrypted: Path, key: str, module) -> None:
     a = sqlite3.connect(plain)
     b = module.connect(str(encrypted))
     try:
-        b.execute(f"PRAGMA key = '{key}'")
+        b.execute(f"""PRAGMA key = "x'{key}'" """)
         tables = [r[0] for r in a.execute("SELECT name FROM sqlite_master WHERE type='table'")]
         for table in tables:
             left = a.execute(f'SELECT count(*) FROM "{table}"').fetchone()[0]

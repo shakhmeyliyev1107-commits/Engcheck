@@ -257,5 +257,20 @@
   "dash.kb": "Bilimlar bazasi manbalari",
   "dash.kbPending": "{count} tasi tasdiqlashni kutmoqda",
   "dash.aiFindings": "AI topilmalari (tasdiqlanmagan)",
-  "ai.lastRun.interrupted": "AI tekshiruvi to‘xtab qoldi: {reason}. Shu paytgacha topilganlar saqlandi."
+  "ai.lastRun.interrupted": "AI tekshiruvi to‘xtab qoldi: {reason}. Shu paytgacha topilganlar saqlandi.",
+  "pkg.export": "Loyihani eksport qilish",
+  "pkg.exportHint": "Paketga asl hujjatlar va topilmalar bo‘yicha qarorlar kiradi. API kalitlari, foydalanuvchilar, bilimlar bazasi va AI natijalari kirmaydi.",
+  "pkg.passphrase": "Parol (ixtiyoriy)",
+  "pkg.passphraseHint": "Parol qo‘yilsa, paket shifrlanadi. Parolsiz paket faqat shikastlanishdan himoyalangan — uni ochib o‘qish va o‘zgartirish mumkin.",
+  "pkg.download": "Paketni yuklab olish",
+  "pkg.import": "Loyihani import qilish",
+  "pkg.file": "Paket fayli (.engpkg)",
+  "pkg.imported": "Import qilindi: {documents} ta hujjat, {restored} ta qaror tiklandi, {unmatched} ta qarorga mos topilma topilmadi.",
+  "sys.title": "Ma'lumotlar himoyasi",
+  "sys.dbEncrypted": "Baza shifrlangan (SQLCipher)",
+  "sys.dbPlain": "Baza shifrlanmagan. Shifrlash uchun ilovani to‘xtatib, «python -m engcheck encrypt-db» buyrug‘ini bajaring.",
+  "sys.dbUnavailable": "Baza shifrlanmagan: shifrlash kutubxonasi (sqlcipher3) o‘rnatilmagan.",
+  "sys.keyring": "Kalitlar operatsion tizim kalit omborida saqlanadi.",
+  "sys.keyFile": "Kalitlar ma'lumotlar papkasidagi faylda saqlanadi. Bu baza nusxasi tarqalishidan himoya qiladi, lekin butun papkaga kira olgan odamdan emas. To‘liq himoya uchun OS kalit omborini yoqing (keyring).",
+  "sys.filesPlain": "Yuklangan asl hujjatlar diskda shifrlanmaydi. Maxfiy loyihalar uchun diskni shifrlang (BitLocker, FileVault, LUKS)."
 }

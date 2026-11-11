@@ -15,6 +15,7 @@ export function Admin() {
   const rules = useLoad(() => api.rules(), []);
   const audit = useLoad(() => api.audit(), []);
   const verify = useLoad(() => api.auditVerify(), []);
+  const sys = useLoad(() => api.system(), []);
   const [login, setLogin] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState("engineer");
@@ -69,6 +70,17 @@ export function Admin() {
           </tbody>
         </table>
       </div>
+
+      {sys.data && (
+        <div data-testid="system-status">
+          <h2>{t("sys.title")}</h2>
+          <p className={sys.data.db_encrypted ? "note" : "warn"}>
+            {t(sys.data.db_encrypted ? "sys.dbEncrypted" : sys.data.encryption_available ? "sys.dbPlain" : "sys.dbUnavailable")}
+          </p>
+          <p className={sys.data.secret_backend === "keyring" ? "note" : "warn"}>{t(sys.data.secret_backend === "keyring" ? "sys.keyring" : "sys.keyFile")}</p>
+          {!sys.data.files_encrypted && <p className="warn">{t("sys.filesPlain")}</p>}
+        </div>
+      )}
 
       <AiProviders />
 

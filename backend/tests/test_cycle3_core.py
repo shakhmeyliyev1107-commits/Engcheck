@@ -130,3 +130,40 @@ def test_cli_random_port_prints_ready_line_and_serves(tmp_path):
         assert r.json() == {"needs_setup": True} and (tmp_path / "d" / "engcheck.db").exists()
     finally:
         proc.terminate(); proc.wait(timeout=10)
+
+
+def test_encrypted_connections_are_fast(tmp_path):
+    """Har so'rov yangi ulanish ochadi: kalit hisobi (KDF) har safar bajarilsa, ilova sezilarli sekinlashadi."""
+    from sqlalchemy import text
+    s = _settings(tmp_path)
+    factory, _ = dbcrypt.open_database(s, _store(s))
+    engine = factory.kw["bind"]
+    start = time.monotonic()
+    for _ in range(40):
+        engine.dispose()
+        with engine.connect() as con:
+            con.execute(text("select count(*) from projects"))
+    assert time.monotonic() - start < 2.0
+
+
+def test_encrypted_database_survives_concurrent_requests(tmp_path):
+    """Xizmat so'rovlarni ko'p oqimda bajaradi: shifrlangan bazada ham ulanishlar bir-birini yopib qo'ymasligi kerak."""
+    import threading
+    s = _settings(tmp_path)
+    factory, _ = dbcrypt.open_database(s, _store(s))
+    with factory() as db:
+        db.add(Project(name="x", industry="gtl", stage=Stage.DD)); db.commit()
+    errors = []
+
+    def work():
+        try:
+            for _ in range(15):
+                with factory() as db:
+                    assert db.query(Project).count() == 1
+                    db.add(Project(name="y", industry="gtl", stage=Stage.DD)); db.rollback()
+        except Exception as exc:   # noqa: BLE001
+            errors.append(repr(exc))
+    threads = [threading.Thread(target=work) for _ in range(16)]
+    for t in threads: t.start()
+    for t in threads: t.join()
+    assert errors == []
