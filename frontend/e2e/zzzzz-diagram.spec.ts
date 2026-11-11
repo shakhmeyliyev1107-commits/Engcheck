@@ -40,6 +40,24 @@ test("sxema yaratish, tugunni sudrash, uskuna qo‘shish, ulash, orqaga qaytaris
   await expect(page.getByTestId("dg-differences")).toContainText("Qo‘shilgan uskuna (hujjatlarda yo‘q): V-103");
   await expect(page.getByTestId("dg-differences")).toContainText("Qo‘shilgan ulanish");
 
+  // Oddiy bosish (sudramasdan) tahrir yaratmaydi: "Oldinga" tarixi o'chib ketmasligi kerak
+  await page.getByTestId("dg-undo").click();
+  await expect(page.getByTestId("dg-redo")).toBeEnabled();
+  await node("eq:E-101").click();
+  await expect(page.getByTestId("dg-redo")).toBeEnabled();
+  await page.getByTestId("dg-redo").click();
+
+  // Hujjatdagi ulanishda o'q uchi bor; nomi o'zgartirilgan uskuna belgilanadi va asl nomi ko'rinadi
+  await expect(page.locator('[data-testid="dg-edge"][data-source="document"]').first()).toHaveAttribute("data-directed", "true");
+  page.once("dialog", (dialog) => dialog.accept("E-101X"));
+  await node("eq:E-101").click();
+  await page.getByTestId("dg-rename").click();
+  await expect(node("eq:E-101")).toHaveAttribute("data-renamed", "true");
+  await expect(node("eq:E-101")).toContainText("E-101X");
+  await expect(node("eq:E-101")).toContainText("asli: E-101");
+  await page.getByTestId("dg-undo").click();
+  await expect(node("eq:E-101")).toHaveAttribute("data-renamed", "false");
+
   // Orqaga va oldinga
   await page.getByTestId("dg-undo").click();
   await expect(page.locator('[data-testid="dg-edge"][data-source="manual"]')).toHaveCount(0);

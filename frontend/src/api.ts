@@ -85,8 +85,8 @@ export interface Action { action: string; comment: string; user: string | null; 
 export interface Citation { key: string; source_id: number; title: string; standard_code: string | null; edition: string | null; status: string; license_type: string; page_no: number; excerpt: string }
 export interface AiNote { id: number; provider: string; model: string; ai_mode: string; text: string; assumptions: string[]; citations: Citation[]; status: string; decided_by: string | null; created_at: string }
 export interface RunInfo { id: number; started_at: string; ai_mode: string; ai_provider: string | null; ai_note: string | null; ai_message: string | null; ai_stats: { pages_reviewed: number; pages_skipped: number; pages_failed: number; pages_truncated: number } | null; ai_error_message: string | null; errors: { rule: string; error: string }[] }
-export interface DgNode { id: string; label: string; kind: string; source: string; x: number; y: number; params: Record<string, string>; moved?: boolean }
-export interface DgEdge { id: string; from: string; to: string; label: string; source: string }
+export interface DgNode { id: string; label: string; kind: string; source: string; x: number; y: number; params: Record<string, string>; moved?: boolean; renamed?: boolean; original_label?: string; line_list_only?: boolean }
+export interface DgEdge { id: string; from: string; to: string; label: string; source: string; directed?: boolean }
 export interface DiagramData { exists: boolean; nodes: DgNode[]; edges: DgEdge[]; unconnected: string[]; differences: { kind: string; label: string }[]; orphan_edits: { id: number }[]; can_undo: boolean; can_redo: boolean; stale: boolean }
 export interface AiProvider { id: number; name: string; kind: string; base_url: string | null; model: string; embed_model: string | null; enabled: boolean; is_default: boolean; is_local: boolean; has_key: boolean }
 export interface AiStatus { mode: string; provider: string | null; reason: string | null; message: string | null; allow_cloud_ai: boolean }

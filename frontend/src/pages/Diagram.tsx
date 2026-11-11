@@ -23,7 +23,7 @@ export function DiagramPage() {
   const [selected, setSelected] = useState<string | null>(null);
   const [connectFrom, setConnectFrom] = useState<string | null>(null);
   const [connecting, setConnecting] = useState(false);
-  const [drag, setDrag] = useState<{ id: string; dx: number; dy: number; x: number; y: number; moved: boolean } | null>(null);
+  const [drag, setDrag] = useState<{ id: string; dx: number; dy: number; x: number; y: number; x0: number; y0: number; moved: boolean } | null>(null);
   const [newLabel, setNewLabel] = useState("");
   const [newKind, setNewKind] = useState("vessel");
   const svgRef = useRef<SVGSVGElement>(null);
@@ -44,8 +44,9 @@ export function DiagramPage() {
   if (!data) return <ErrorNote text={loaded.error} />;
   const nodes = data.nodes.map((n) => (drag && drag.id === n.id ? { ...n, x: drag.x, y: drag.y } : n));
   const byId = new Map(nodes.map((n) => [n.id, n]));
-  const xs = nodes.map((n) => n.x);
-  const ys = nodes.map((n) => n.y);
+  // Ko'rinish chegarasi saqlangan o'rinlardan hisoblanadi: sudrash paytida butun sxema masshtabi o'zgarib ketmaydi.
+  const xs = data.nodes.map((n) => n.x);
+  const ys = data.nodes.map((n) => n.y);
   const minX = Math.min(0, ...xs) - 60;
   const minY = Math.min(0, ...ys) - 60;
   const width = Math.max(900, Math.max(0, ...xs) + W + 80 - minX);
@@ -62,12 +63,16 @@ export function DiagramPage() {
     const p = toDiagram(e);
     (e.currentTarget as Element).setPointerCapture(e.pointerId);
     setSelected(n.id);
-    if (editable) setDrag({ id: n.id, dx: p.x - n.x, dy: p.y - n.y, x: n.x, y: n.y, moved: false });
+    if (editable) setDrag({ id: n.id, dx: p.x - n.x, dy: p.y - n.y, x: n.x, y: n.y, x0: n.x, y0: n.y, moved: false });
   };
   const onNodeMove = (e: RPointerEvent) => {
     if (!drag) return;
     const p = toDiagram(e);
-    setDrag({ ...drag, x: Math.round(p.x - drag.dx), y: Math.round(p.y - drag.dy), moved: true });
+    const x = Math.round(p.x - drag.dx);
+    const y = Math.round(p.y - drag.dy);
+    // Oddiy bosishdagi mayda titrash ko'chirish hisoblanmaydi: aks holda keraksiz tahrir yozilib, "Oldinga" tarixi o'chadi.
+    const moved = drag.moved || Math.hypot(x - drag.x0, y - drag.y0) > 4;
+    setDrag(moved ? { ...drag, x, y, moved } : drag);
   };
   const onNodeUp = () => {
     if (!drag) return;
@@ -175,20 +180,25 @@ export function DiagramPage() {
                 const ex = x2 - ((x2 - x1) / len) * cut;
                 const ey = y2 - ((y2 - y1) / len) * cut;
                 return (
-                  <g key={e.id} data-testid="dg-edge" data-source={e.source} onPointerDown={() => setSelected(e.id)} style={{ color: "var(--muted)", cursor: "pointer" }}>
+                  <g key={e.id} data-testid="dg-edge" data-source={e.source} data-directed={e.directed === false ? "false" : "true"} onPointerDown={() => setSelected(e.id)} style={{ color: "var(--muted)", cursor: "pointer" }}>
                     <line x1={x1} y1={y1} x2={ex} y2={ey} stroke="transparent" strokeWidth={14} />
-                    <line className={`dg-edge src-${e.source} ${selected === e.id ? "selected" : ""}`} x1={x1} y1={y1} x2={ex} y2={ey} markerEnd="url(#dg-arrow)" />
+                    <line className={`dg-edge src-${e.source} ${selected === e.id ? "selected" : ""}`} x1={x1} y1={y1} x2={ex} y2={ey}
+                          markerEnd={e.directed === false || (e.directed === undefined && e.source === "inferred") ? undefined : "url(#dg-arrow)"} />
                     {e.label && <text className="dg-edge-label" x={(x1 + x2) / 2} y={(y1 + y2) / 2 - 6} textAnchor="middle">{e.label}</text>}
                   </g>
                 );
               })}
               {nodes.map((n) => (
-                <g key={n.id} className={`dg-node src-${n.source} kind-${n.kind} ${selected === n.id || connectFrom === n.id ? "selected" : ""}`}
-                   data-testid="dg-node" data-id={n.id} data-source={n.source} transform={`translate(${n.x},${n.y})`}
-                   onPointerDown={(e) => onNodeDown(e, n)} onPointerMove={onNodeMove} onPointerUp={onNodeUp} onClick={() => onNodeClick(n)}>
-                  <title>{[t(`dg.kind.${n.kind}` as Key), ...Object.values(n.params)].join(" · ")}</title>
+                <g key={n.id} className={`dg-node src-${n.renamed ? "manual" : n.source} kind-${n.kind} ${n.line_list_only ? "line-list-only" : ""} ${selected === n.id || connectFrom === n.id ? "selected" : ""}`}
+                   data-testid="dg-node" data-id={n.id} data-source={n.source} data-renamed={n.renamed ? "true" : "false"} transform={`translate(${n.x},${n.y})`}
+                   onPointerDown={(e) => onNodeDown(e, n)} onPointerMove={onNodeMove} onPointerUp={onNodeUp}
+                   onPointerCancel={() => setDrag(null)} onLostPointerCapture={() => setDrag((d) => (d && !d.moved ? null : d))}
+                   onClick={() => onNodeClick(n)}>
+                  <title>{[t(`dg.kind.${n.kind}` as Key), ...(n.renamed ? [t("dg.was", { label: n.original_label ?? "" })] : []),
+                           ...(n.line_list_only ? [t("dg.legend.lineListOnly")] : []), ...Object.values(n.params)].join(" · ")}</title>
                   <rect width={W} height={H} rx={["vessel", "column", "tank", "reactor"].includes(n.kind) ? 32 : 6} />
-                  <text x={W / 2} y={H / 2 + 5} textAnchor="middle">{n.label}</text>
+                  <text x={W / 2} y={H / 2 + (n.renamed ? -2 : 5)} textAnchor="middle">{n.label}</text>
+                  {n.renamed && <text x={W / 2} y={H / 2 + 15} textAnchor="middle" style={{ fontSize: 11, fill: "var(--muted)" }}>({t("dg.was", { label: n.original_label ?? "" })})</text>}
                 </g>
               ))}
             </svg>
@@ -197,6 +207,7 @@ export function DiagramPage() {
             <span><i />{t("dg.legend.document")}</span>
             <span><i className="inferred" />{t("dg.legend.inferred")}</span>
             <span><i className="manual" />{t("dg.legend.manual")}</span>
+            {data.nodes.some((n) => n.line_list_only) && <span><i className="dotted" />{t("dg.legend.lineListOnly")}</span>}
           </div>
           <p className="note">{t("dg.notApplied")}</p>
           {data.orphan_edits.length > 0 && <p className="warn" data-testid="dg-orphans">{t("dg.orphans", { count: data.orphan_edits.length })}</p>}

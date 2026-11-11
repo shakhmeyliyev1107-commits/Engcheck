@@ -1,12 +1,12 @@
 """Prinsipial sxema: yaratish, o'qish, tahrirlash, orqaga/oldinga, SVG eksport."""
-from fastapi import APIRouter, Body, Depends, Response
+from fastapi import APIRouter, Body, Depends, Request, Response
 from sqlalchemy.orm import Session as Db
 
 from ..core.auth import Perm
 from ..core.models import User
 from ..diagram import service as diagram
 from ..diagram.svg import render_svg
-from .deps import get_db, require
+from .deps import get_db, locale_of, require
 from .errors import ApiError
 from .routes_projects import get_project
 
@@ -53,8 +53,8 @@ def redo_edit(project_id: int, user: User = Depends(require(Perm.decide)), db: D
 
 
 @router.get("/projects/{project_id}/diagram.svg")
-def export_svg(project_id: int, _: User = Depends(require(Perm.view)), db: Db = Depends(get_db)):
+def export_svg(project_id: int, request: Request, _: User = Depends(require(Perm.view)), db: Db = Depends(get_db)):
     get_project(db, project_id)
-    return Response(content=render_svg(diagram.get(db, project_id)), media_type="image/svg+xml",
+    return Response(content=render_svg(diagram.get(db, project_id), locale_of(request)), media_type="image/svg+xml",
                     headers={"Content-Disposition": f'attachment; filename="diagram-{project_id}.svg"',
                              "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'"})

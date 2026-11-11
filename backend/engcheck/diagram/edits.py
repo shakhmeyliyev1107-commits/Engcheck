@@ -1,12 +1,18 @@
 """Tahrirlar qatlami: muhandis amallarini tekshirish va yaratilgan qatlam ustiga qo'llash."""
 import copy
 import math
+import unicodedata
 
 from .generator import KINDS
 
 OPS = ("move", "add_node", "remove_node", "rename_node", "add_edge", "remove_edge")
 MAX_LABEL, MAX_ID, MAX_COORD = 80, 120, 100_000
-MANUAL_KINDS = tuple(k for k in KINDS)
+MANUAL_KINDS = tuple(k for k in KINDS if k != "boundary")   # chegara tugunlari faqat hujjatdan
+
+
+def _clean(text: str) -> bool:
+    """Boshqaruv va format belgilari yo'q (masalan, matn yo'nalishini teskari qiluvchi U+202E)."""
+    return not any(unicodedata.category(c) in ("Cc", "Cf") for c in text)
 
 
 class EditError(Exception):
@@ -18,13 +24,13 @@ class EditError(Exception):
 
 
 def _id(value) -> str:
-    if not isinstance(value, str) or not value or len(value) > MAX_ID or any(ord(c) < 32 for c in value):
+    if not isinstance(value, str) or not value or len(value) > MAX_ID or not _clean(value):
         raise EditError("invalid_op")
     return value
 
 
 def _label(value, required: bool = True) -> str:
-    if not isinstance(value, str) or len(value) > MAX_LABEL or any(ord(c) < 32 for c in value):
+    if not isinstance(value, str) or len(value) > MAX_LABEL or not _clean(value):
         raise EditError("invalid_op")
     if required and not value.strip():
         raise EditError("invalid_op")
@@ -32,7 +38,11 @@ def _label(value, required: bool = True) -> str:
 
 
 def _coord(value) -> float:
-    if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or abs(value) > MAX_COORD:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise EditError("invalid_op")
+    if isinstance(value, float) and not math.isfinite(value):
+        raise EditError("invalid_op")
+    if abs(value) > MAX_COORD:   # juda katta butun son ham shu yerda ushlanadi
         raise EditError("invalid_op")
     return round(float(value), 1)
 
@@ -86,11 +96,15 @@ def apply_one(diagram: dict, op: dict) -> bool:
         node = nodes[op["id"]]
         node.setdefault("original_label", node["label"])
         node["label"] = op["label"]
+        # Hujjatdagi uskuna nomi o'zgartirilgan: endi u hujjatdagidek ko'rinmasligi kerak.
+        node["renamed"] = node["label"] != node["original_label"]
     elif kind == "add_edge":
         if op["id"] in edges or op["from"] not in nodes or op["to"] not in nodes or op["from"] == op["to"]:
             return False
+        if any((e["from"], e["to"]) == (op["from"], op["to"]) for e in diagram["edges"]):
+            return False   # shu yo'nalishdagi ulanish allaqachon bor
         diagram["edges"].append({"id": op["id"], "from": op["from"], "to": op["to"], "label": op["label"],
-                                 "source": "manual"})
+                                 "source": "manual", "directed": True})
     elif kind == "remove_edge":
         if op["id"] not in edges:
             return False

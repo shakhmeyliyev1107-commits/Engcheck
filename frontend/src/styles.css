@@ -101,3 +101,5 @@ label.check { display: flex; gap: 6px; align-items: center; }
 .legend { display: flex; gap: 18px; flex-wrap: wrap; font-size: .9rem; color: var(--muted); margin: 8px 0; }
 .legend i { display: inline-block; width: 28px; border-top: 3px solid var(--ink); vertical-align: middle; margin-right: 6px; }
 .legend i.inferred { border-top: 3px dashed var(--major); } .legend i.manual { border-top-color: var(--accent); }
+.dg-node.line-list-only rect { stroke-dasharray: 2 5; }
+.legend i.dotted { border-top: 3px dotted var(--ink); }

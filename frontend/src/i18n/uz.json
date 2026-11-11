@@ -291,8 +291,8 @@
   "dg.export": "SVG yuklab olish",
   "dg.selected": "Tanlangan: {label}",
   "dg.legend.document": "Hujjatdan",
-  "dg.legend.inferred": "Taxminiy (chizmadagi yaqinlik bo‘yicha)",
-  "dg.legend.manual": "Qo‘lda kiritilgan",
+  "dg.legend.inferred": "Taxminiy (chizmadagi yaqinlik bo‘yicha; yo‘nalishi noma'lum, o‘q uchi yo‘q)",
+  "dg.legend.manual": "Qo‘lda kiritilgan yoki o‘zgartirilgan",
   "dg.unconnected": "Uchi aniqlanmagan quvurlar",
   "dg.differences": "Hujjatlardan farqlar",
   "dg.noDifferences": "Sxema hujjatlarga mos.",
@@ -315,5 +315,7 @@
   "dg.kind.generic": "Boshqa",
   "dash.diagram": "Sxemadagi uskunalar",
   "dash.diagramDiff": "{count} ta farq",
-  "dash.diagramNone": "Sxema yaratilmagan"
+  "dash.diagramNone": "Sxema yaratilmagan",
+  "dg.legend.lineListOnly": "Faqat quvurlar ro‘yxatida uchraydi (uskunalar hujjatlarida yo‘q)",
+  "dg.was": "asli: {label}"
 }

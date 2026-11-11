@@ -32,4 +32,6 @@ def test_diagram_goes_stale_when_documents_change(client_as, reviewed):
     d = c.get(f"/api/projects/{pid}/diagram").json()
     assert d["stale"] is True
     d = c.post(f"/api/projects/{pid}/diagram/generate").json()
-    assert d["stale"] is False and all(e["source"] == "inferred" for e in d["edges"])   # endi faqat chizmadagi yaqinlik
+    # Endi From/To yo'q: ulanish faqat chizmada tanlov aniq bo'lsa taxmin qilinadi, qolgani "uchi aniqlanmagan".
+    assert d["stale"] is False and all(e["source"] == "inferred" and e["directed"] is False for e in d["edges"])
+    assert len(d["edges"]) + len(d["unconnected"]) == 4

@@ -16,15 +16,23 @@ Foydalanuvchi ko'rsatmasi (2026-11-10): "o'zing to'g'ri deb bilganday tartib bil
 | 1 | Yadro va tekshiruv dvigateli | `main` da |
 | 2 | AI provayderlari, bilimlar bazasi (RAG) | `main` da (ko'rikdan o'tgan, tuzatilgan) |
 | 3 | Desktop qobiq (Electron), baza shifrlash, loyiha paketini eksport/import | `main` da (ko'rikdan o'tgan, tuzatilgan) |
-| 4 | Prinsipial sxema generatori **va tahrirlagichi** | `feat/sikl-4` (GitHub'da): kod tayyor, yakuniy ko'rik kutilmoqda |
+| 4 | Prinsipial sxema generatori **va tahrirlagichi** | `main` da (ko'rikdan o'tgan, tuzatilgan) |
 | 5 | 3D joylashuv modeli **va tahrirlash** | boshlanmagan |
 
 ## Hozirgi qadam
-4-sikl ko'rigi: tekshiruvchi natijasini kutish → Critical/Important ni test bilan tuzatish →
-`main` ga `--no-ff` merge → `git push origin main` → 5-sikl (3D joylashuv modeli va tahrirlash:
-uskunalar va civil ma'lumotidan three.js sahnasi; tahrirlar qatlami sxemadagidek — `backend/engcheck/diagram/edits.py` namunasi).
-Tekshiruvchi javob bermasa: `git diff main..feat/sikl-4` ni o'zim ko'rib chiqaman (tahrir amallarini tekshirish,
-SVG eksportda XSS, ruxsatlar, undo/redo tartibi, generatorning taxminiy ulanishlari to'g'ri belgilanishi).
+5-siklni boshlash: `feat/sikl-5` shoxi. 3D joylashuv modeli va tahrirlash.
+Reja: uskunalar (sxemadagi tugunlar) + civil ma'lumoti (DXF koordinatalari bo'lsa — joylashuv; bo'lmasa — avtomatik panjara,
+"taxminiy joylashuv" belgisi bilan). O'lchamlar: datasheetdagi diametr/uzunlik bo'lsa — hujjatdan, aks holda turi bo'yicha shartli
+o'lcham ("shartli" deb belgilanadi). three.js sahnasi; tahrirlar qatlami sxemadagidek (`backend/engcheck/diagram/edits.py` namunasi:
+move/rotate/resize/add/remove, undo/redo, qayta yaratishda saqlanadi, audit). Testlarni QISMLAB yuritish kerak
+(to'liq `pytest` bitta buyruqda ba'zan to'xtatiladi): `tests/core tests/review tests/kb tests/ai`, `tests/api`, `tests/package tests/test_cycle3_core.py`, `tests/diagram tests/ingest`.
+
+## 4-sikldan qolgan
+- Sxema `stale` belgisi faqat faol hujjatlar to'plami o'zgarsa yonadi (hujjat turi o'zgarsa — yo'q).
+- Qo'llanmagan (orphan) tahrirlar faqat son sifatida ko'rsatiladi; alohida o'chirib bo'lmaydi.
+- Sxemani klaviatura bilan tahrirlab bo'lmaydi (faqat sichqoncha/sensor).
+- Ketma-ket tez tahrirlarda javoblar tartibi nazorat qilinmaydi.
+- Sxema loyiha paketiga kirmaydi (import qilgan tomonda qayta yaratiladi, tahrirlar ko'chmaydi).
 
 ## 3-sikldan qolgan
 - O'rnatuvchini yig'ish (PyInstaller + electron-builder) sinalmagan; kod imzolash yo'q.

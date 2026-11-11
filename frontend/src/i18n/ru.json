@@ -291,8 +291,8 @@
   "dg.export": "Скачать SVG",
   "dg.selected": "Выбрано: {label}",
   "dg.legend.document": "Из документов",
-  "dg.legend.inferred": "Предположительно (по близости на чертеже)",
-  "dg.legend.manual": "Добавлено вручную",
+  "dg.legend.inferred": "Предположительно (по близости на чертеже; направление неизвестно, без стрелки)",
+  "dg.legend.manual": "Добавлено или изменено вручную",
   "dg.unconnected": "Трубопроводы с неизвестными концами",
   "dg.differences": "Отличия от документов",
   "dg.noDifferences": "Схема соответствует документам.",
@@ -315,5 +315,7 @@
   "dg.kind.generic": "Прочее",
   "dash.diagram": "Оборудование на схеме",
   "dash.diagramDiff": "Отличий: {count}",
-  "dash.diagramNone": "Схема не создана"
+  "dash.diagramNone": "Схема не создана",
+  "dg.legend.lineListOnly": "Встречается только в перечне трубопроводов (нет в документах по оборудованию)",
+  "dg.was": "было: {label}"
 }

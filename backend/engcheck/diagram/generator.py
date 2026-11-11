@@ -52,7 +52,10 @@ def generate(db: Db, project_id: int) -> dict:
             return None
         tags = normalize_tags(value)
         if len(tags) == 1:
-            nodes.setdefault(f"eq:{tags[0]}", _equipment_node(tags[0], shown.get(tags[0])))
+            if f"eq:{tags[0]}" not in nodes:
+                # Uskuna faqat quvurlar ro'yxatida uchraydi (P&ID, uskunalar ro'yxati yoki datasheetda yo'q):
+                # yozuv xatosi bo'lishi mumkin, shuning uchun alohida belgilanadi.
+                nodes[f"eq:{tags[0]}"] = {**_equipment_node(tags[0], shown.get(tags[0])), "line_list_only": True}
             return f"eq:{tags[0]}"
         label = value[:80]
         nodes.setdefault(f"bd:{label}", {"id": f"bd:{label}", "label": label, "kind": "boundary",
@@ -66,17 +69,23 @@ def generate(db: Db, project_id: int) -> dict:
     lines = sorted({o.tag.tag for o in occurrences if o.tag.tag_class == TagClass.line})
     edges, unconnected = [], []
     for line in lines:
-        src, dst = endpoint(ends[line].get("line_from", "")), endpoint(ends[line].get("line_to", ""))
-        if src and dst and src != dst:
-            edges.append({"id": f"ln:{line}", "from": src, "to": dst, "label": line, "source": "document"})
+        raw_from, raw_to = ends[line].get("line_from", "").strip(), ends[line].get("line_to", "").strip()
+        if raw_from or raw_to:
+            src, dst = endpoint(raw_from), endpoint(raw_to)
+            if src and dst and src != dst:
+                edges.append({"id": f"ln:{line}", "from": src, "to": dst, "label": line, "source": "document",
+                              "directed": True})
+            else:
+                # Hujjatda uchlardan biri yozilgan (yoki ikkalasi bir xil): taxmin bilan to'ldirilmaydi va
+                # hujjatdagi ma'lumotga zid ulanish chizilmaydi.
+                unconnected.append(f"{line} ({raw_from or '?'} → {raw_to or '?'})")
             continue
         inferred = _infer_from_geometry(line, occurrences)
         if inferred:
             a, b = inferred
-            nodes.setdefault(a, _equipment_node(a[3:], shown.get(a[3:])))
-            nodes.setdefault(b, _equipment_node(b[3:], shown.get(b[3:])))
-            # Taxminiy ulanish: chizmadagi yaqinlik bo'yicha. Hujjatda aniq yozilmagan — alohida belgilanadi.
-            edges.append({"id": f"ln:{line}", "from": a, "to": b, "label": line, "source": "inferred"})
+            # Taxminiy ulanish: chizmadagi yaqinlik bo'yicha. Hujjatda yozilmagan, yo'nalishi noma'lum.
+            edges.append({"id": f"ln:{line}", "from": a, "to": b, "label": line, "source": "inferred",
+                          "directed": False})
         else:
             unconnected.append(line)
     result_nodes = [nodes[k] for k in sorted(nodes)]
@@ -84,8 +93,16 @@ def generate(db: Db, project_id: int) -> dict:
     return {"nodes": result_nodes, "edges": sorted(edges, key=lambda e: e["id"]), "unconnected": unconnected}
 
 
+MAX_REACH = 0.35   # ikkinchi eng yaqin uskunagacha masofa: chizma o'lchamining shu ulushidan oshmasligi kerak
+MIN_MARGIN = 1.3   # uchinchi nomzod ikkinchisidan kamida shuncha marta uzoq bo'lishi kerak
+
+
 def _infer_from_geometry(line: str, occurrences) -> tuple[str, str] | None:
-    """P&ID (DXF) da quvur yozuviga eng yaqin ikki uskuna bloki."""
+    """P&ID (DXF) da quvur yozuviga eng yaqin ikki uskuna bloki — faqat tanlov aniq bo'lsa.
+
+    Shartlar: varaqda kamida uch uskuna; ikkala nomzod yozuvga yaqin (chizma o'lchamiga nisbatan);
+    uchinchi nomzod sezilarli uzoqroq. Aks holda None — quvur "uchi aniqlanmagan" bo'lib qoladi.
+    """
     for o in occurrences:
         if o.tag.tag != line or o.document.doc_type != DocType.PID:
             continue
@@ -93,14 +110,19 @@ def _infer_from_geometry(line: str, occurrences) -> tuple[str, str] | None:
         if not m:
             continue
         x, y = float(m.group(1)), float(m.group(2))
-        near = []
+        blocks = {}
         for e in occurrences:
             em = _XY.match(e.location or "")
             if (e.document_id == o.document_id and em and e.tag.tag_class == TagClass.equipment
-                    and e.method == Method.cell):
-                near.append(((float(em.group(1)) - x) ** 2 + (float(em.group(2)) - y) ** 2, e.tag.tag))
-        near = sorted(set(near))
-        if len(near) >= 2:
-            a, b = sorted((near[0][1], near[1][1]))
+                    and e.method == Method.cell and f"eq:{e.tag.tag}"):
+                blocks[e.tag.tag] = (float(em.group(1)), float(em.group(2)))
+        if len(blocks) < 3:
+            continue
+        xs, ys = [p[0] for p in blocks.values()], [p[1] for p in blocks.values()]
+        extent = ((max(xs) - min(xs)) ** 2 + (max(ys) - min(ys)) ** 2) ** 0.5
+        near = sorted((((bx - x) ** 2 + (by - y) ** 2) ** 0.5, tag) for tag, (bx, by) in blocks.items())
+        (d1, a), (d2, b), (d3, _) = near[0], near[1], near[2]
+        if extent > 0 and d2 <= MAX_REACH * extent and d3 >= MIN_MARGIN * max(d2, 1e-9):
+            a, b = sorted((a, b))
             return f"eq:{a}", f"eq:{b}"
     return None

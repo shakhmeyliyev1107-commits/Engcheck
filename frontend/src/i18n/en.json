@@ -291,8 +291,8 @@
   "dg.export": "Download SVG",
   "dg.selected": "Selected: {label}",
   "dg.legend.document": "From documents",
-  "dg.legend.inferred": "Inferred (from proximity on the drawing)",
-  "dg.legend.manual": "Added manually",
+  "dg.legend.inferred": "Inferred (from proximity on the drawing; direction unknown, no arrowhead)",
+  "dg.legend.manual": "Added manually or modified",
   "dg.unconnected": "Lines with unknown ends",
   "dg.differences": "Differences from the documents",
   "dg.noDifferences": "The diagram matches the documents.",
@@ -315,5 +315,7 @@
   "dg.kind.generic": "Other",
   "dash.diagram": "Equipment on the diagram",
   "dash.diagramDiff": "{count} difference(s)",
-  "dash.diagramNone": "No diagram yet"
+  "dash.diagramNone": "No diagram yet",
+  "dg.legend.lineListOnly": "Appears only in the line list (not in the equipment documents)",
+  "dg.was": "was: {label}"
 }
