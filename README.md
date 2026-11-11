@@ -269,13 +269,16 @@ Model nimaga asoslanganini har doim ochiq ko‘rsatadi:
 |---|---|---|
 | Joylashuv | Intizomi «Qurilish» bo‘lgan DXF bosh rejadagi uskuna bloklari koordinatasi | «hujjatdan» |
 | Joylashuv | Bosh rejada yo‘q uskunalar — chetdagi panjarada | «taxminiy», sahnada shaffof |
-| O‘lcham | Hujjatlardagi diametr / balandlik / uzunlik | «hujjatdan» yoki «qisman hujjatdan» |
+| O‘lcham | Datasheet yoki uskunalar ro‘yxatidagi diametr / balandlik / uzunlik (datasheet ustun) | «hujjatdan» yoki «qisman hujjatdan» |
+| O‘lcham | Hujjatlar bir-biriga zid | «hujjatlar zid — datasheet qiymati» |
 | O‘lcham | Topilmasa — uskuna turi bo‘yicha shartli o‘lcham | «taxminiy» |
 
 Cheklovlar (sahifada ham yozilgan):
 
 - DXF chizma birligini ishonchli aniqlab bo‘lmaydi: o‘lchami katta chizma **mm**, kichigi **m** deb olinadi — bu **taxmin**.
-- Balandlik belgilari hujjatlardan olinmaydi: barcha uskunalar 0 belgisida.
+- Koordinatalar bosh reja chizmasining o‘z koordinatalarida (metrga o‘tkazilgan) ko‘rsatiladi.
+- «DN 80» kabi nominal o‘lcham qobiq diametri deb olinmaydi; balandlik o‘rniga uzunlik ishlatilsa, o‘lcham «qisman hujjatdan» deb belgilanadi.
+- Balandlik belgilari va burilish burchagi hujjatlardan olinmaydi: barcha uskunalar 0 belgisida, burilishi 0°.
 - Quvurlar, konstruksiyalar va binolar chizilmaydi. Model loyiha 3D modeli (PDMS/E3D/SP3D va h.k.) o‘rnini **bosmaydi**.
 
 **Tahrirlash** («Tasdiqlash» huquqi bor foydalanuvchilar): uskunani sahnada zamin bo‘ylab sudrash yoki jadvalda

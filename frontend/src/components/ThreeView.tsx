@@ -27,6 +27,15 @@ function geometry(item: L3Item): THREE.BufferGeometry {
   return new THREE.BoxGeometry(item.w, item.h, item.d);
 }
 
+/** Sahnadan olib tashlangan obyektning GPU resurslarini bo'shatadi. */
+function dispose(obj: THREE.Object3D) {
+  const o = obj as THREE.Mesh | THREE.Sprite;
+  const mat = o.material as (THREE.Material & { map?: THREE.Texture | null }) | undefined;
+  mat?.map?.dispose();
+  mat?.dispose();
+  if ((o as THREE.Mesh).isMesh) o.geometry.dispose();   // sprite geometriyasi umumiy — unga tegilmaydi
+}
+
 function label(text: string): THREE.Sprite {
   const canvas = document.createElement("canvas");
   canvas.width = 256;
@@ -56,10 +65,11 @@ interface Props {
 /** three.js sahnasi. Model X → sahna X, model Y → sahna −Z, balandlik → sahna Y. */
 export function ThreeView({ items, selected, editable, onSelect, onMove, onError }: Props) {
   const host = useRef<HTMLDivElement>(null);
-  const ctx = useRef<{ scene: THREE.Scene; camera: THREE.PerspectiveCamera; renderer: THREE.WebGLRenderer; controls: OrbitControls; group: THREE.Group; framed: boolean } | null>(null);
+  const ctx = useRef<{ scene: THREE.Scene; camera: THREE.PerspectiveCamera; renderer: THREE.WebGLRenderer; controls: OrbitControls; group: THREE.Group; grid: THREE.GridHelper; framed: boolean } | null>(null);
   const callbacks = useRef({ onSelect, onMove, editable });
   callbacks.current = { onSelect, onMove, editable };
   const [count, setCount] = useState(0);
+  const selectedRef = useRef(selected);
 
   useEffect(() => {
     const el = host.current!;
@@ -86,7 +96,15 @@ export function ThreeView({ items, selected, editable, onSelect, onMove, onError
     scene.add(grid);
     const group = new THREE.Group();
     scene.add(group);
-    ctx.current = { scene, camera, renderer, controls, group, framed: false };
+    ctx.current = { scene, camera, renderer, controls, group, grid, framed: false };
+    // Uskunaning ekrandagi o'rni (brauzer testlari sudrashni tekshirishi uchun)
+    (el as HTMLDivElement & { project?: (id: string) => { x: number; y: number } | null }).project = (id) => {
+      const mesh = group.children.find((o) => o.userData.id === id);
+      if (!mesh) return null;
+      const v = mesh.position.clone().project(camera);
+      const r = renderer.domElement.getBoundingClientRect();
+      return { x: r.left + ((v.x + 1) / 2) * r.width, y: r.top + ((1 - v.y) / 2) * r.height };
+    };
 
     const resize = () => {
       const { clientWidth: w, clientHeight: h } = el;
@@ -107,6 +125,7 @@ export function ThreeView({ items, selected, editable, onSelect, onMove, onError
       return new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
     };
     const down = (e: PointerEvent) => {
+      if (e.button !== 0) return;   // o'ng/o'rta tugma — kamerani surish, uskunani emas
       ray.setFromCamera(pointer(e), camera);
       const hit = ray.intersectObjects(group.children.filter((o) => (o as THREE.Mesh).isMesh), false)[0];
       if (!hit) { callbacks.current.onSelect(null); return; }
@@ -153,7 +172,11 @@ export function ThreeView({ items, selected, editable, onSelect, onMove, onError
       cancelAnimationFrame(frame);
       observer.disconnect();
       controls.dispose();
+      group.children.forEach(dispose);
+      grid.geometry.dispose();
+      (grid.material as THREE.Material).dispose();
       renderer.dispose();
+      renderer.forceContextLoss();   // brauzerdagi WebGL kontekstlari soni cheklangan
       dom.remove();
       ctx.current = null;
     };
@@ -165,12 +188,11 @@ export function ThreeView({ items, selected, editable, onSelect, onMove, onError
     if (!c) return;
     for (const child of [...c.group.children]) {
       c.group.remove(child);
-      const mesh = child as THREE.Mesh;
-      mesh.geometry?.dispose();
-      (mesh.material as THREE.Material | undefined)?.dispose?.();
+      dispose(child);
     }
     for (const item of items) {
-      const mesh = new THREE.Mesh(geometry(item), material(item, item.id === selected));
+      const mesh = new THREE.Mesh(geometry(item), material(item, item.id === selectedRef.current));
+      mesh.userData.item = item;
       mesh.position.set(item.x, item.z + item.h / 2, -item.y);
       mesh.rotation.y = THREE.MathUtils.degToRad(item.rot);
       mesh.userData.id = item.id;
@@ -183,13 +205,24 @@ export function ThreeView({ items, selected, editable, onSelect, onMove, onError
     if (!c.framed && items.length) {   // birinchi marta kamerani modelga qaratamiz
       const box = new THREE.Box3().setFromObject(c.group);
       const center = box.getCenter(new THREE.Vector3());
+      c.grid.position.set(Math.round(center.x / 5) * 5, 0, Math.round(center.z / 5) * 5);   // chizma koordinatalari noldan uzoq bo'lishi mumkin
       const size = Math.max(box.getSize(new THREE.Vector3()).length(), 20);
       c.controls.target.copy(center);
       c.camera.position.set(center.x + size * 0.3, size * 0.45, center.z + size * 0.6);
       c.framed = true;
     }
     setCount(items.length);
-  }, [items, selected]);
+  }, [items]);
+
+  useEffect(() => {
+    selectedRef.current = selected;
+    for (const child of ctx.current?.group.children ?? []) {
+      const mesh = child as THREE.Mesh;
+      if (!mesh.isMesh) continue;
+      (mesh.material as THREE.Material).dispose();
+      mesh.material = material(mesh.userData.item, mesh.userData.id === selected);
+    }
+  }, [selected]);
 
   return <div className="l3-view" ref={host} data-testid="l3-view" data-rendered={count} />;
 }

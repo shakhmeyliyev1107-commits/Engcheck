@@ -353,5 +353,6 @@
   "dash.layout3d": "3D modeldagi uskunalar",
   "dash.layout3dNone": "3D model yaratilmagan",
   "l3.notApplied": "Tahrir faqat 3D modelga ta'sir qiladi; hujjatlar o‘zgarmaydi.",
-  "l3.noDifferences": "Model hujjatlarga mos."
+  "l3.noDifferences": "Model hujjatlarga mos.",
+  "l3.src.conflict": "hujjatlar zid — datasheet qiymati"
 }

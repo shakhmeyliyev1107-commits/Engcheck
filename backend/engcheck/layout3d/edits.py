@@ -71,11 +71,13 @@ def apply_one(model: dict, op: dict) -> bool:
     if item is None:
         return False
     if kind == "move":
-        item.update(x=op["x"], y=op["y"], position_source="manual")
+        if (op["x"], op["y"]) != (item["x"], item["y"]):   # joyida qolgan uskuna "qo'lda" deb belgilanmaydi
+            item.update(x=op["x"], y=op["y"], position_source="manual")
     elif kind == "rotate":
         item["rot"] = op["rot"]
     elif kind == "resize":
-        item.update(w=op["w"], d=op["d"], h=op["h"], size_source="manual")
+        if (op["w"], op["d"], op["h"]) != (item["w"], item["d"], item["h"]):
+            item.update(w=op["w"], d=op["d"], h=op["h"], size_source="manual")
     elif kind == "rename":
         item.setdefault("original_label", item["label"])
         item["label"] = op["label"]
@@ -103,7 +105,7 @@ def differences(generated: dict, effective: dict) -> list[dict]:
             out.append({"kind": "item_renamed", "label": f"{base['label']} → {item['label']}"})
         if base["position_source"] == "document" and (item["x"], item["y"]) != (base["x"], base["y"]):
             out.append({"kind": "position_changed", "label": base["label"]})
-        if base["size_source"] in ("document", "partial") and (item["w"], item["d"], item["h"]) != (base["w"], base["d"], base["h"]):
+        if base["size_source"] in ("document", "partial", "conflict") and (item["w"], item["d"], item["h"]) != (base["w"], base["d"], base["h"]):
             out.append({"kind": "size_changed", "label": base["label"]})
     out += [{"kind": "item_removed", "label": i["label"]} for item_id, i in g.items() if item_id not in e]
     return out

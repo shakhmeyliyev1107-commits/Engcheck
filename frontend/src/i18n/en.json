@@ -353,5 +353,6 @@
   "dash.layout3d": "Equipment in the 3D model",
   "dash.layout3dNone": "No 3D model yet",
   "l3.notApplied": "Edits affect only the 3D model; the documents are not changed.",
-  "l3.noDifferences": "The model matches the documents."
+  "l3.noDifferences": "The model matches the documents.",
+  "l3.src.conflict": "documents disagree — datasheet value used"
 }

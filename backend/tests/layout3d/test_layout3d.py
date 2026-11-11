@@ -47,8 +47,8 @@ def test_positions_from_civil_plot_plan_in_metres(db, plant):
     _plot(db, plant, {"V-101": (10, 20), "P-101A": (30, 20), "E-101": (10, 60)})
     m = generate(db, plant.id)
     items = _by(m)
-    assert (items["eq:V-101"]["x"], items["eq:V-101"]["y"], items["eq:V-101"]["position_source"]) == (0.0, 0.0, "document")
-    assert (items["eq:P-101A"]["x"], items["eq:E-101"]["y"]) == (20.0, 40.0)        # eng chap-pastki uskunaga nisbatan, metrda
+    assert (items["eq:V-101"]["x"], items["eq:V-101"]["y"], items["eq:V-101"]["position_source"]) == (10.0, 20.0, "document")
+    assert (items["eq:P-101A"]["x"], items["eq:E-101"]["y"]) == (30.0, 60.0)        # chizmaning o'z koordinatalari, metrda
     assert items["eq:T-201"]["position_source"] == "assumed"                       # bosh rejada yo'q
     assert m["unit_assumed"] == "m" and m["plot_plan"] == "GP-PLT-001"
 
@@ -56,7 +56,7 @@ def test_positions_from_civil_plot_plan_in_metres(db, plant):
 def test_large_drawing_extent_is_taken_as_millimetres_and_flagged(db, plant):
     _plot(db, plant, {"V-101": (10000, 20000), "P-101A": (30000, 20000)})
     m = generate(db, plant.id)
-    assert m["unit_assumed"] == "mm" and _by(m)["eq:P-101A"]["x"] == 20.0
+    assert m["unit_assumed"] == "mm" and _by(m)["eq:P-101A"]["x"] == 30.0
 
 
 def test_without_plot_plan_everything_is_on_an_assumed_grid(db, plant):
@@ -197,3 +197,60 @@ def test_differences_only_count_changes_to_document_values(db, plant, user):
     kinds = sorted((x["kind"], x["label"]) for x in l3.get(db, plant.id)["differences"])
     assert kinds == [("item_added", "TK-900"), ("item_removed", "T-201"), ("item_renamed", "E-101 → E-101X"),
                      ("position_changed", "V-101"), ("size_changed", "V-101")]
+
+
+# --- mustaqil ko'rikdan keyingi tuzatishlar ---
+
+def test_manual_position_stays_put_relative_to_documents_when_plot_plan_grows(db, plant, user):
+    _plot(db, plant, {"V-101": (10, 10), "P-101A": (20, 10)}, rev="A")
+    l3.regenerate(db, plant.id, user)
+    l3.add_edit(db, plant.id, user, {"op": "move", "id": "eq:P-101A", "x": 21, "y": 10})   # V-101 dan 11 m sharqda
+    _plot(db, plant, {"V-101": (10, 10), "P-101A": (20, 10), "E-101": (0, 0)}, rev="B")     # chizma chegarasi kengaydi
+    items = _by(l3.regenerate(db, plant.id, user))
+    assert (items["eq:V-101"]["x"], items["eq:V-101"]["y"]) == (10.0, 10.0)                # hujjatdagi joy siljimaydi
+    assert items["eq:P-101A"]["x"] - items["eq:V-101"]["x"] == 11.0
+
+
+def test_conflicting_document_sizes_are_flagged_and_datasheet_wins(db, project):
+    eql, ds = make_doc(db, project, EQL, "EQL-1"), make_doc(db, project, DS, "DS-1")
+    make_param(db, project, eql, "V-300", "size", "1200 mm", 1200.0); make_param(db, project, eql, "V-300", "equipment_height", "4 m", 4000.0)
+    make_param(db, project, ds, "V-300", "size", "2400 mm", 2400.0); make_param(db, project, ds, "V-300", "equipment_height", "9 m", 9000.0)
+    v = _by(generate(db, project.id))["eq:V-300"]
+    assert (v["w"], v["h"], v["size_source"]) == (2.4, 9.0, "conflict")
+
+
+def test_agreeing_document_sizes_are_not_a_conflict(db, project):
+    eql, ds = make_doc(db, project, EQL, "EQL-1"), make_doc(db, project, DS, "DS-1")
+    for d in (eql, ds):
+        make_param(db, project, d, "V-300", "size", "2400 mm", 2400.0); make_param(db, project, d, "V-300", "equipment_height", "9 m", 9000.0)
+    assert _by(generate(db, project.id))["eq:V-300"]["size_source"] == "document"
+
+
+def test_nominal_size_is_not_a_shell_diameter(db, project):
+    ds = make_doc(db, project, DS)
+    make_param(db, project, ds, "V-300", "size", "DN 80", 80.0); make_param(db, project, ds, "V-300", "equipment_height", "6 m", 6000.0)
+    v = _by(generate(db, project.id))["eq:V-300"]
+    assert (v["w"], v["h"], v["size_source"]) == (DEFAULT_SIZE["vessel"][0], 6.0, "partial")
+
+
+def test_length_used_as_height_is_an_interpretation_not_a_document_fact(db, project):
+    ds = make_doc(db, project, DS)
+    make_param(db, project, ds, "V-300", "size", "2 m", 2000.0); make_param(db, project, ds, "V-300", "equipment_length", "6 m", 6000.0)
+    v = _by(generate(db, project.id))["eq:V-300"]
+    assert (v["h"], v["size_source"]) == (6.0, "partial")
+
+
+def test_sizes_are_not_taken_from_pid_or_other_documents(db, project):
+    pid, ds = make_doc(db, project, PID, "PID-1"), make_doc(db, project, DS, "DS-1")
+    make_param(db, project, pid, "V-300", "size", "150 mm", 150.0)
+    make_param(db, project, ds, "V-300", "material", "CS")
+    assert _by(generate(db, project.id))["eq:V-300"]["size_source"] == "assumed"
+
+
+def test_noop_move_and_resize_keep_document_source_labels(db, plant, user):
+    _plot(db, plant, {"V-101": (10, 20)})
+    l3.regenerate(db, plant.id, user)
+    m = l3.add_edit(db, plant.id, user, {"op": "move", "id": "eq:V-101", "x": 10, "y": 20})
+    m = l3.add_edit(db, plant.id, user, {"op": "resize", "id": "eq:V-101", "w": 2.4, "d": 2.4, "h": 9})
+    v = _by(m)["eq:V-101"]
+    assert (v["position_source"], v["size_source"]) == ("document", "document") and m["differences"] == []

@@ -11,9 +11,9 @@ const KINDS = ["vessel", "column", "tank", "reactor", "exchanger", "pump", "comp
 const uid = () => `m:${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
 
 /** Son maydoni: qiymat fokus yo'qolganda yoki Enter bosilganda yuboriladi (har harfda emas). */
-function Num({ value, label, testid, disabled, onCommit }: { value: number; label: string; testid: string; disabled: boolean; onCommit: (v: number) => void }) {
+function Num({ value, tick, label, testid, disabled, onCommit }: { value: number; tick: number; label: string; testid: string; disabled: boolean; onCommit: (v: number) => void }) {
   const [text, setText] = useState(String(value));
-  useEffect(() => setText(String(value)), [value]);
+  useEffect(() => setText(String(value)), [value, tick]);   // tick: har bir so'rov tugagach model qiymatiga qaytadi
   const commit = () => {
     const v = Number(text.replace(",", "."));
     if (text.trim() !== "" && Number.isFinite(v) && v !== value) onCommit(v);
@@ -37,15 +37,22 @@ export function Layout3dPage() {
   const [webgl, setWebgl] = useState(true);
   const [newLabel, setNewLabel] = useState("");
   const [newKind, setNewKind] = useState("vessel");
-  const editable = can(user, "decide");
+  const [tick, setTick] = useState(0);
+  const [busy, setBusy] = useState(false);
+  const editable = can(user, "decide") && !busy;   // so'rov tugaguncha yangi tahrir qabul qilinmaydi (javoblar tartibi buzilmasin)
 
+  useEffect(() => { setData(null); setSelected(null); }, [id]);
   useEffect(() => { if (loaded.data) setData(loaded.data); }, [loaded.data]);
   const run = async (fn: () => Promise<Layout3dData>) => {
     setError(null);
+    setBusy(true);
     try {
       setData(await fn());
     } catch (err) {
       setError(errorText(err));
+    } finally {
+      setBusy(false);
+      setTick((n) => n + 1);
     }
   };
   const edit = (op: Record<string, unknown>) => run(() => api.layout3dEdit(id, op));
@@ -67,19 +74,19 @@ export function Layout3dPage() {
         <small>{t(`dg.kind.${i.kind}` as Key)}</small>
       </td>
       <td>
-        <Num value={i.x} label={`${i.label} ${t("l3.x")}`} testid="l3-x" disabled={!editable} onCommit={(v) => void edit({ op: "move", id: i.id, x: v, y: i.y })} />{" "}
-        <Num value={i.y} label={`${i.label} ${t("l3.y")}`} testid="l3-y" disabled={!editable} onCommit={(v) => void edit({ op: "move", id: i.id, x: i.x, y: v })} />
+        <Num tick={tick} value={i.x} label={`${i.label} ${t("l3.x")}`} testid="l3-x" disabled={!editable} onCommit={(v) => void edit({ op: "move", id: i.id, x: v, y: i.y })} />{" "}
+        <Num tick={tick} value={i.y} label={`${i.label} ${t("l3.y")}`} testid="l3-y" disabled={!editable} onCommit={(v) => void edit({ op: "move", id: i.id, x: i.x, y: v })} />
         <small data-testid="l3-pos-src">{src(i.position_source)}</small>
       </td>
-      <td><Num value={i.rot} label={`${i.label} ${t("l3.rot")}`} testid="l3-rot" disabled={!editable} onCommit={(v) => void edit({ op: "rotate", id: i.id, rot: v })} /></td>
+      <td><Num tick={tick} value={i.rot} label={`${i.label} ${t("l3.rot")}`} testid="l3-rot" disabled={!editable} onCommit={(v) => void edit({ op: "rotate", id: i.id, rot: v })} /></td>
       <td>
-        <Num value={i.w} label={`${i.label} ${t("l3.w")}`} testid="l3-w" disabled={!editable} onCommit={(v) => void edit({ op: "resize", id: i.id, w: v, d: i.shape === "cylinder_v" ? v : i.d, h: i.h })} />{" "}
-        <Num value={i.d} label={`${i.label} ${t("l3.d")}`} testid="l3-d" disabled={!editable || i.shape !== "box"} onCommit={(v) => void edit({ op: "resize", id: i.id, w: i.w, d: v, h: i.h })} />{" "}
-        <Num value={i.h} label={`${i.label} ${t("l3.h")}`} testid="l3-h" disabled={!editable} onCommit={(v) => void edit({ op: "resize", id: i.id, w: i.w, d: i.shape === "cylinder_h" ? v : i.d, h: v })} />
+        <Num tick={tick} value={i.w} label={`${i.label} ${t("l3.w")}`} testid="l3-w" disabled={!editable} onCommit={(v) => void edit({ op: "resize", id: i.id, w: v, d: i.shape === "cylinder_v" ? v : i.d, h: i.h })} />{" "}
+        <Num tick={tick} value={i.d} label={`${i.label} ${t("l3.d")}`} testid="l3-d" disabled={!editable || i.shape !== "box"} onCommit={(v) => void edit({ op: "resize", id: i.id, w: i.w, d: v, h: i.h })} />{" "}
+        <Num tick={tick} value={i.h} label={`${i.label} ${t("l3.h")}`} testid="l3-h" disabled={!editable} onCommit={(v) => void edit({ op: "resize", id: i.id, w: i.w, d: i.shape === "cylinder_h" ? v : i.d, h: v })} />
         <small data-testid="l3-size-src">{src(i.size_source)}</small>
       </td>
       <td>
-        {editable && (
+        {can(user, "decide") && (
           <>
             <button className="link" data-testid="l3-rename" onClick={(e) => {
               e.stopPropagation();
@@ -102,10 +109,10 @@ export function Layout3dPage() {
       {data.stale && <p className="warn" data-testid="l3-stale">{t("l3.stale")}</p>}
       <div className="row" style={{ marginBottom: 10 }}>
         {can(user, "review") && <button className={data.exists ? "" : "primary"} onClick={() => void run(() => api.layout3dGenerate(id))} data-testid="l3-generate">{t(data.exists ? "dg.regenerate" : "l3.generate")}</button>}
-        {data.exists && editable && (
+        {data.exists && can(user, "decide") && (
           <>
-            <button disabled={!data.can_undo} onClick={() => void run(() => api.layout3dUndo(id))} data-testid="l3-undo">{t("dg.undo")}</button>
-            <button disabled={!data.can_redo} onClick={() => void run(() => api.layout3dRedo(id))} data-testid="l3-redo">{t("dg.redo")}</button>
+            <button disabled={busy || !data.can_undo} onClick={() => void run(() => api.layout3dUndo(id))} data-testid="l3-undo">{t("dg.undo")}</button>
+            <button disabled={busy || !data.can_redo} onClick={() => void run(() => api.layout3dRedo(id))} data-testid="l3-redo">{t("dg.redo")}</button>
           </>
         )}
       </div>
@@ -129,7 +136,7 @@ export function Layout3dPage() {
           {data.orphan_edits.length > 0 && <p className="warn">{t("dg.orphans", { count: data.orphan_edits.length })}</p>}
 
           <h2>{t("l3.items")}</h2>
-          {editable && (
+          {can(user, "decide") && (
             <form className="filters" onSubmit={add}>
               <label className="field">{t("dg.nodeLabel")}<input value={newLabel} onChange={(e) => setNewLabel(e.target.value)} maxLength={80} data-testid="l3-new-label" /></label>
               <label className="field">{t("doc.type")}

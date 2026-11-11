@@ -17,8 +17,9 @@ test("3D model: yaratish, bosh reja, jadval orqali tahrirlash, qo‘shish, orqag
   // Bosh reja yo'q: joylashuv taxminiy ekani ochiq aytiladi
   await expect(page.getByTestId("l3-source")).toContainText("taxminiy panjarada");
   await expect(row("V-101").getByTestId("l3-pos-src")).toHaveText("taxminiy");
-  // Sahna chizilgan (WebGL bo'lmasa — zaxira xabari; ikkalasi ham to'g'ri holat, lekin biri bo'lishi shart)
-  await expect(page.locator('[data-testid="l3-view"] canvas, [data-testid="l3-nowebgl"]')).toHaveCount(1);
+  // Sahna chizilgan
+  await expect(page.locator('[data-testid="l3-view"] canvas')).toHaveCount(1);
+  await expect(page.getByTestId("l3-view")).toHaveAttribute("data-rendered", "7");
 
   // Bosh rejani yuklaymiz: model eskiradi, qayta yaratilgach joylashuv hujjatdan olinadi
   await openProject(page, "Gaz tozalash bloki");
@@ -36,8 +37,8 @@ test("3D model: yaratish, bosh reja, jadval orqali tahrirlash, qo‘shish, orqag
   await expect(page.getByTestId("l3-source")).toContainText("GP-PLT-001");
   await expect(page.getByTestId("l3-source")).toContainText("taxmin");            // chizma birligi — taxmin
   await expect(row("V-102").getByTestId("l3-pos-src")).toHaveText("hujjatdan");
-  await expect(row("V-102").getByTestId("l3-x")).toHaveValue("12");
-  await expect(row("V-102").getByTestId("l3-y")).toHaveValue("12");
+  await expect(row("V-102").getByTestId("l3-x")).toHaveValue("22");
+  await expect(row("V-102").getByTestId("l3-y")).toHaveValue("20");
   await expect(page.getByText("Model hujjatlarga mos.")).toBeVisible();
 
   // Klaviatura orqali ko'chirish va burish
@@ -48,6 +49,27 @@ test("3D model: yaratish, bosh reja, jadval orqali tahrirlash, qo‘shish, orqag
   await row("E-101").getByTestId("l3-rot").fill("90");
   await row("E-101").getByTestId("l3-rot").press("Enter");
   await expect(page.getByTestId("l3-undo")).toBeEnabled();
+
+  // Tanlanmagan uskunani sahnada sudrash: joyi o'zgaradi va "qo'lda" deb belgilanadi
+  const at = async (id: string) => page.getByTestId("l3-view").evaluate((el, i) => (el as unknown as { project: (id: string) => { x: number; y: number } }).project(i), id);
+  await page.getByTestId("l3-view").scrollIntoViewIfNeeded();   // jadvalni tahrirlash sahifani pastga surgan
+  const from = await at("eq:V-101");
+  await page.mouse.move(from.x, from.y);
+  await page.mouse.down();
+  await page.mouse.move(from.x + 40, from.y + 10, { steps: 5 });
+  const during = await at("eq:V-101");
+  expect(Math.abs(during.x - from.x)).toBeGreaterThan(15);                      // sudrash paytida jismning o'zi ham siljiydi
+  await page.mouse.up();
+  await expect(row("V-101").getByTestId("l3-pos-src")).toHaveText("qo‘lda");
+  await expect(row("V-101").getByTestId("l3-x")).not.toHaveValue("10");
+  await page.getByTestId("l3-undo").click();
+  await expect(row("V-101").getByTestId("l3-x")).toHaveValue("10");
+  await expect(row("V-101").getByTestId("l3-pos-src")).toHaveText("hujjatdan");
+
+  // Rad etilgan qiymat maydonda qolib ketmaydi
+  await row("E-101").getByTestId("l3-w").fill("0");
+  await row("E-101").getByTestId("l3-w").press("Enter");
+  await expect(row("E-101").getByTestId("l3-w")).toHaveValue("6");
 
   // Uskuna qo'shish
   await page.getByTestId("l3-new-label").fill("T-201");
