@@ -127,6 +127,8 @@ class Project(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
     # Loyiha matnlarini bulutli AI ga yuborishga ruxsat; standart holatda yo'q.
     allow_cloud_ai: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
+    # Ulangan hujjatlar papkasi (shu kompyuter yoki tarmoqdagi yo'l). Loyiha paketiga kirmaydi.
+    source_folder: Mapped[str | None] = mapped_column(String(1000), nullable=True)
 
 
 class Document(Base):

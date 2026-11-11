@@ -10,7 +10,7 @@ from ..config import Settings
 from ..ai.registry import build
 from ..core import dbcrypt
 from ..core.secrets import SecretStore
-from . import (routes_ai, routes_audit, routes_auth, routes_diagram, routes_layout3d, routes_dashboard, routes_documents, routes_findings,
+from . import (routes_ai, routes_audit, routes_auth, routes_diagram, routes_layout3d, routes_folder, routes_dashboard, routes_documents, routes_findings,
                routes_kb, routes_projects, routes_reviews, routes_system)
 from .deps import locale_of
 from .errors import MESSAGES, ApiError, localize
@@ -33,7 +33,7 @@ def create_app(settings: Settings, frontend_dist: Path | None = FRONTEND_DIST) -
 
     for module in (routes_auth, routes_projects, routes_documents, routes_reviews, routes_findings,
                    routes_dashboard, routes_audit, routes_ai, routes_kb, routes_system,
-                   routes_diagram, routes_layout3d):
+                   routes_diagram, routes_layout3d, routes_folder):
         app.include_router(module.router, prefix="/api")
 
     allowed_hosts = {h.lower() for h in settings.allowed_hosts}

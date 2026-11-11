@@ -4,8 +4,12 @@ $Root = Split-Path -Parent $PSScriptRoot
 $venvPy = Join-Path $Root ".venv\Scripts\python.exe"
 if (-not (Test-Path $venvPy)) { throw "Dastur hali o'rnatilmagan. Avval 'ornatish.bat' ni ishga tushiring." }
 # Interfeys qurilmagan bo'lsa (brauzerda "not_found" chiqadi) - shu yerda quramiz
-if (-not (Test-Path (Join-Path $Root "frontend\dist\index.html"))) {
-    Write-Host "Interfeys hali qurilmagan - qurilmoqda (bir necha daqiqa)..." -ForegroundColor Yellow
+# Dastur yangilangan bo'lsa (VERSION o'zgargan) interfeys qayta quriladi
+$Version = (Get-Content (Join-Path $Root "VERSION") -ErrorAction SilentlyContinue | Select-Object -First 1)
+$Marker = Join-Path $Root "frontend\dist\.version"
+$Built = (Get-Content $Marker -ErrorAction SilentlyContinue | Select-Object -First 1)
+if (-not (Test-Path (Join-Path $Root "frontend\dist\index.html")) -or ($Version -and $Version -ne $Built)) {
+    Write-Host "Interfeys qurilmoqda (bir necha daqiqa)..." -ForegroundColor Yellow
     $env:Path = [Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [Environment]::GetEnvironmentVariable("Path", "User")
     if (-not (Get-Command npm.cmd -ErrorAction SilentlyContinue)) {
         throw "Node.js topilmadi. https://nodejs.org saytidan LTS versiyasini o'rnating, so'ng shu faylni qayta ishga tushiring."
@@ -16,6 +20,7 @@ if (-not (Test-Path (Join-Path $Root "frontend\dist\index.html"))) {
         if ($LASTEXITCODE -ne 0) { throw "npm install xato bilan tugadi (yuqoridagi matnni yuboring)." }
         & npm.cmd run build
         if ($LASTEXITCODE -ne 0) { throw "Interfeysni qurishda xato (yuqoridagi matnni yuboring)." }
+        if ($Version) { Set-Content -Path $Marker -Value $Version }
     } finally { Pop-Location }
 }
 # Oldingi nusxa hali ishlab turgan bo'lsa, port band bo'ladi

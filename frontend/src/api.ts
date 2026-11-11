@@ -90,6 +90,9 @@ export interface DgEdge { id: string; from: string; to: string; label: string; s
 export interface DiagramData { exists: boolean; nodes: DgNode[]; edges: DgEdge[]; unconnected: string[]; differences: { kind: string; label: string }[]; orphan_edits: { id: number }[]; can_undo: boolean; can_redo: boolean; stale: boolean }
 export interface L3Item { id: string; label: string; kind: string; shape: string; source: string; x: number; y: number; z: number; rot: number; w: number; d: number; h: number; position_source: string; size_source: string; renamed?: boolean; original_label?: string }
 export interface Layout3dData { exists: boolean; items: L3Item[]; unit_assumed: string | null; plot_plan: string | null; differences: { kind: string; label: string }[]; orphan_edits: { id: number }[]; can_undo: boolean; can_redo: boolean; stale: boolean }
+export interface FolderFile { path: string; size: number; status: string; doc_type: string | null; doc_number: string | null; revision: string | null }
+export interface FolderScan { path: string; files: FolderFile[]; truncated: boolean }
+export interface FolderResult { path: string; status: string; code?: string }
 export interface AiProvider { id: number; name: string; kind: string; base_url: string | null; model: string; embed_model: string | null; enabled: boolean; is_default: boolean; is_local: boolean; has_key: boolean }
 export interface AiStatus { mode: string; provider: string | null; reason: string | null; message: string | null; allow_cloud_ai: boolean }
 export interface KbSource { id: number; title: string; kind: string; standard_code: string | null; edition: string | null; status: string; license_type: string; filename: string | null; approved: boolean; added_by: string | null; chunks: number }
@@ -148,6 +151,10 @@ export const api = {
   diagramUndo: (id: number) => json<DiagramData>("POST", `/projects/${id}/diagram/undo`),
   diagramRedo: (id: number) => json<DiagramData>("POST", `/projects/${id}/diagram/redo`),
   diagramSvg: async (id: number) => (await request("GET", `/projects/${id}/diagram.svg`)).blob(),
+  folder: (id: number) => json<{ path: string | null }>("GET", `/projects/${id}/folder`),
+  folderLink: (id: number, path: string | null) => json<{ path: string | null }>("PUT", `/projects/${id}/folder`, { path }),
+  folderScan: (id: number) => json<FolderScan>("GET", `/projects/${id}/folder/scan`),
+  folderImport: (id: number, files: Record<string, unknown>[]) => json<{ results: FolderResult[] }>("POST", `/projects/${id}/folder/import`, { files }),
   layout3d: (id: number) => json<Layout3dData>("GET", `/projects/${id}/layout3d`),
   layout3dGenerate: (id: number) => json<Layout3dData>("POST", `/projects/${id}/layout3d/generate`),
   layout3dEdit: (id: number, op: Record<string, unknown>) => json<Layout3dData>("POST", `/projects/${id}/layout3d/edits`, op),

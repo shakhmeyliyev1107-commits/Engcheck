@@ -25,6 +25,9 @@ siklda — pastdagi "Hali yo‘q" bo‘limiga qarang.
    kutubxonalarni yuklaydi, interfeysni quradi va dasturni brauzerda ochadi (birinchi safar 5–15 daqiqa, internet kerak).
 3. Keyingi safar **`ishga-tushirish.bat`** ni bosing.
 
+**Yangilash:** GitHub'dan ZIP'ni qayta yuklab, eski papka ustiga oching (fayllarni almashtirib) va
+`ishga-tushirish.bat` ni bosing — interfeys o‘zi qayta quriladi. Ma'lumotlaringiz (`.engcheck` papkasi) saqlanib qoladi.
+
 Skriptlar `windows/` papkasida. Ular Windows'da hali sinovdan o‘tkazilmagan: xato chiqsa, oynadagi matnni yuboring.
 
 ### Qo‘lda
@@ -169,6 +172,25 @@ yoqadi va o‘chiradi.
 - Har bir o‘zgartiruvchi harakat audit jurnaliga yoziladi. Jurnal
   xesh-zanjirli: **Boshqaruv** sahifasi uning butunligini tekshiradi.
 - Baza shifrlash va boshqa himoya choralari — "Ma'lumotlar himoyasi" bo‘limida.
+
+## Hujjatlar papkasini ulash
+
+Hujjatlarni bittalab tanlash o‘rniga loyihaga butun papkani ulash mumkin: loyiha sahifasida **«Papkadan yuklash»**.
+
+1. Papkaning to‘liq yo‘lini kiriting va **«Ulash»** ni bosing (faqat loyiha rahbari yoki administrator):
+   - shu kompyuterdagi papka — `C:\Loyiha\Hujjatlar`;
+   - tarmoqdagi (serverdagi) papka — `\\server\papka\Loyiha` yoki ulangan disk (`Z:\Loyiha`);
+   - bulut (OneDrive, Google Drive, SharePoint) — papkani kompyuterga sinxronlab, uning **lokal yo‘lini** kiriting.
+     Internet-havola (`https://...`) qabul qilinmaydi.
+2. Dastur papkani ichki papkalari bilan skanerlaydi va PDF, DOCX, XLSX, DXF fayllarni ro‘yxatda ko‘rsatadi.
+   Hujjat turi, raqami va reviziyasi fayl nomidan **taklif qilinadi** — bu taxmin, yuklashdan oldin tekshiring.
+   Turi tanlanmagan fayl yuklanmaydi. DWG fayllar ko‘rsatiladi, lekin yuklanmaydi (avval DXF ga o‘giring).
+3. **«Tanlanganlarni yuklash»** — fayllar loyihaga nusxalanadi (asl papka o‘zgarmaydi).
+4. Papkaga yangi hujjat tushsa — oynani qayta ochib **«Qayta skanerlash»** ni bosing: avval yuklanganlar
+   «yuklangan» deb belgilanadi, faqat yangilari taklif qilinadi. Avtomatik kuzatuv yo‘q.
+
+Cheklovlar: bitta papkadan ko‘pi bilan 2000 fayl ko‘rsatiladi, 200 MB dan katta fayl yuklanmaydi; yashirin papkalar
+va havolalar (symlink) o‘tkazib yuboriladi. Papka yo‘li loyiha paketiga (.engpkg) kirmaydi. Ulash va yuklash audit jurnaliga yoziladi.
 
 ## Desktop ilova
 

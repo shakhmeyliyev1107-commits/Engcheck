@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { api } from "../api";
 import { ParseBadge, SeverityBadge } from "../components/Badges";
 import { ErrorNote } from "../components/Layout";
+import { FolderDialog } from "../components/FolderDialog";
 import { UploadDialog } from "../components/UploadDialog";
 import { SEVERITIES } from "../constants";
 import { useErrorText, useLoad } from "../hooks";
@@ -32,6 +33,7 @@ export function ProjectPage() {
     }
   });
   const [uploading, setUploading] = useState(false);
+  const [folderOpen, setFolderOpen] = useState(false);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -84,6 +86,7 @@ export function ProjectPage() {
         </div>
         <div className="row">
           {can(user, "upload") && <button onClick={() => setUploading(true)} data-testid="open-upload">{t("project.upload")}</button>}
+          {can(user, "upload") && <button onClick={() => setFolderOpen(true)} data-testid="open-folder">{t("project.folder")}</button>}
           {can(user, "review") && ai.data && ai.data.mode !== "none" && (
             <label className="check"><input type="checkbox" checked={useAi} onChange={(e) => setUseAi(e.target.checked)} data-testid="use-ai" /> {t("ai.useAi")}</label>
           )}
@@ -252,6 +255,7 @@ export function ProjectPage() {
       {can(user, "delete_project") && (
         <p style={{ marginTop: 28 }}><button className="danger" onClick={removeProject}>{t("project.deleteProject")}</button></p>
       )}
+      {folderOpen && <FolderDialog projectId={id} onClose={(changed) => { setFolderOpen(false); if (changed) reload(); }} />}
       {uploading && <UploadDialog projectId={id} onClose={(changed) => { setUploading(false); if (changed) reload(); }} />}
     </>
   );
