@@ -89,3 +89,15 @@ pre.doc-text { background: var(--panel); border: 1px solid var(--line); border-r
 .formgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; align-items: end; }
 .formgrid .wide { grid-column: 1 / -1; }
 label.check { display: flex; gap: 6px; align-items: center; }
+.dg-wrap { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; touch-action: none; }
+.dg-wrap svg { display: block; width: 100%; height: 560px; cursor: default; user-select: none; }
+.dg-node rect { fill: var(--bg); stroke: var(--ink); stroke-width: 2; }
+.dg-node text { fill: var(--ink); font-size: 13px; pointer-events: none; }
+.dg-node.src-manual rect { stroke: var(--accent); } .dg-node.kind-boundary rect { stroke-dasharray: 4 4; }
+.dg-node.selected rect { stroke-width: 4; } .dg-node { cursor: grab; }
+.dg-edge { stroke: var(--ink); stroke-width: 2; fill: none; } .dg-edge.src-inferred { stroke: var(--major); stroke-dasharray: 7 5; }
+.dg-edge.src-manual { stroke: var(--accent); } .dg-edge.selected { stroke-width: 4; }
+.dg-edge-label { fill: var(--muted); font-size: 11px; pointer-events: none; paint-order: stroke; stroke: var(--panel); stroke-width: 5px; stroke-linejoin: round; }
+.legend { display: flex; gap: 18px; flex-wrap: wrap; font-size: .9rem; color: var(--muted); margin: 8px 0; }
+.legend i { display: inline-block; width: 28px; border-top: 3px solid var(--ink); vertical-align: middle; margin-right: 6px; }
+.legend i.inferred { border-top: 3px dashed var(--major); } .legend i.manual { border-top-color: var(--accent); }

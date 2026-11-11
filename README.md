@@ -5,11 +5,11 @@ tozalash) loyiha hujjatlarini FEED, Detail Design va As-Built bosqichlarida
 tekshiradi: hujjatlardan teg va parametrlarni ajratadi, ularni o‘zaro
 solishtiradi va nomuvofiqliklarni manbasi bilan ko‘rsatadi.
 
-**Hozirgi holat (1–3-sikllar):** deterministik tekshiruv dvigateli, AI
+**Hozirgi holat (1–4-sikllar):** deterministik tekshiruv dvigateli, AI
 provayderlarini ulash (bulutli va lokal), bilimlar bazasi (RAG), manbali AI
 izoh va AI tekshiruv, desktop qobiq, baza shifrlash, loyiha paketini
-eksport/import. Sxema va 3D model keyingi sikllarda — pastdagi "Hali yo‘q"
-bo‘limiga qarang.
+eksport/import, prinsipial sxema generatori va tahrirlagichi. 3D model keyingi
+siklda — pastdagi "Hali yo‘q" bo‘limiga qarang.
 
 ## Talablar
 
@@ -233,6 +233,30 @@ Loyihani hamkasbga bitta `.engpkg` fayl sifatida berish:
   tahlil qilinadi, qoidalar ishga tushadi, qarorlar tiklanadi. Bulutli AI
   roziligi ko‘chmaydi — qabul qiluvchi o‘zi beradi.
 
+## Prinsipial sxema
+
+Loyiha sahifasidagi **Sxemadagi uskunalar** kartasi orqali ochiladi. Sxema
+hujjatlardan ajratilgan uskunalar va quvurlardan quriladi; u P&ID o‘rnini
+bosmaydi — umumiy ko‘rinish va tekshiruv vositasi.
+
+- **Uskunalar** — P&ID, uskunalar ro‘yxati va datasheetlardagi teglar. Turi
+  (idish, nasos, issiqlik almashtirgich va h.k.) teg prefiksidan olinadi.
+- **Ulanishlar** — quvurlar ro‘yxatidagi **From / To** (Qayerdan / Qayerga)
+  ustunlaridan. Bu ustunlar bo‘lmasa, P&ID (DXF) da quvur yozuviga eng yaqin
+  ikki uskuna olinadi va ulanish **uzuq chiziq bilan, "taxminiy"** deb
+  ko‘rsatiladi. Uchi aniqlanmagan quvurlar sxema ostida sanaladi.
+- **Tahrirlash** (muhandis va yuqori): tugunni sudrab ko‘chirish, uskuna
+  qo‘shish, ikki uskunani ulash, nomini o‘zgartirish, o‘chirish, **Orqaga** va
+  **Oldinga**. Qo‘lda kiritilgan elementlar alohida rangda.
+- **Qayta yaratish** hujjatlardan olingan qatlamni yangilaydi; tahrirlaringiz
+  saqlanadi. Elementi hujjatlardan yo‘qolgan tahrirlar "qo‘llanmagan" deb
+  sanab ko‘rsatiladi.
+- **Hujjatlardan farqlar** ro‘yxati sxema hujjatlardan nimasi bilan farq
+  qilishini ko‘rsatadi (qo‘shilgan, o‘chirilgan, nomi o‘zgargan).
+- Tahrir faqat sxemaga ta'sir qiladi — yuklangan hujjatlar o‘zgarmaydi. Har
+  tahrir audit jurnaliga yoziladi.
+- **SVG yuklab olish** sxemani fayl sifatida beradi.
+
 ## AI va bilimlar bazasi
 
 AI ixtiyoriy: usiz ham barcha qoidalar ishlaydi.
@@ -338,6 +362,7 @@ backend/engcheck/
   review/    qoidalar (R001–R007), dvigatel, uch tilli matnlar
   ai/        provayderlar, rejim tanlash, AI izoh va AI tekshiruv
   kb/        bilimlar bazasi: bo'laklash, qidiruv, indekslash
+  diagram/   prinsipial sxema: generator, joylashtirish, tahrirlar
   api/       HTTP API
 frontend/    React interfeysi (uz / en / ru)
 desktop/     Electron qobig'i
@@ -349,7 +374,6 @@ docs/superpowers/   spetsifikatsiya va amalga oshirish rejasi
 
 | Imkoniyat | Sikl |
 |---|---|
-| Prinsipial sxema generatori va tahrirlagichi | 4 |
 | 3D joylashuv modeli va uni tahrirlash | 5 |
 | Yuklangan fayllarni diskda shifrlash, kod imzolash, avtomatik yangilanish | rejalashtirilmagan |
 | OCR (skanerlangan PDF) | rejalashtirilmagan |

@@ -19,6 +19,6 @@ export async function signIn(page: Page, user = ADMIN) {
 
 export async function openProject(page: Page, name: string) {
   await page.goto("/projects");
-  await page.getByRole("link", { name, exact: true }).click();
+  await page.getByRole("link", { name, exact: true }).last().click();   // bir xil nomli loyihalar bo'lsa — eng birinchisi (ro'yxat yangisidan boshlanadi)
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(name);
 }

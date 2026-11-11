@@ -85,6 +85,9 @@ export interface Action { action: string; comment: string; user: string | null; 
 export interface Citation { key: string; source_id: number; title: string; standard_code: string | null; edition: string | null; status: string; license_type: string; page_no: number; excerpt: string }
 export interface AiNote { id: number; provider: string; model: string; ai_mode: string; text: string; assumptions: string[]; citations: Citation[]; status: string; decided_by: string | null; created_at: string }
 export interface RunInfo { id: number; started_at: string; ai_mode: string; ai_provider: string | null; ai_note: string | null; ai_message: string | null; ai_stats: { pages_reviewed: number; pages_skipped: number; pages_failed: number; pages_truncated: number } | null; ai_error_message: string | null; errors: { rule: string; error: string }[] }
+export interface DgNode { id: string; label: string; kind: string; source: string; x: number; y: number; params: Record<string, string>; moved?: boolean }
+export interface DgEdge { id: string; from: string; to: string; label: string; source: string }
+export interface DiagramData { exists: boolean; nodes: DgNode[]; edges: DgEdge[]; unconnected: string[]; differences: { kind: string; label: string }[]; orphan_edits: { id: number }[]; can_undo: boolean; can_redo: boolean; stale: boolean }
 export interface AiProvider { id: number; name: string; kind: string; base_url: string | null; model: string; embed_model: string | null; enabled: boolean; is_default: boolean; is_local: boolean; has_key: boolean }
 export interface AiStatus { mode: string; provider: string | null; reason: string | null; message: string | null; allow_cloud_ai: boolean }
 export interface KbSource { id: number; title: string; kind: string; standard_code: string | null; edition: string | null; status: string; license_type: string; filename: string | null; approved: boolean; added_by: string | null; chunks: number }
@@ -95,6 +98,7 @@ export interface Dashboard {
   findings: { total: number; by_severity: Record<string, number>; by_status: Record<string, number>; open: number; open_critical: number; confirmed_unfixed: number; ai: number };
   last_run: RunInfo | null;
   kb: { sources: number; pending: number };
+  diagram: { exists: boolean; stale: boolean; nodes: number; differences: number };
   rules: { enabled: number; total: number };
 }
 export interface Rule { code: string; title: string; severity: string; enabled: boolean; source: string }
@@ -135,6 +139,12 @@ export const api = {
     return json<{ project: Project; documents: number; decisions_restored: number; decisions_unmatched: number }>("POST", "/projects/import", form);
   },
   system: () => json<{ version: string; db_encrypted: boolean; encryption_available: boolean; secret_backend: string; files_encrypted: boolean }>("GET", "/system"),
+  diagram: (id: number) => json<DiagramData>("GET", `/projects/${id}/diagram`),
+  diagramGenerate: (id: number) => json<DiagramData>("POST", `/projects/${id}/diagram/generate`),
+  diagramEdit: (id: number, op: Record<string, unknown>) => json<DiagramData>("POST", `/projects/${id}/diagram/edits`, op),
+  diagramUndo: (id: number) => json<DiagramData>("POST", `/projects/${id}/diagram/undo`),
+  diagramRedo: (id: number) => json<DiagramData>("POST", `/projects/${id}/diagram/redo`),
+  diagramSvg: async (id: number) => (await request("GET", `/projects/${id}/diagram.svg`)).blob(),
   aiStatus: (id: number) => json<AiStatus>("GET", `/projects/${id}/ai-status`),
   aiProviders: () => json<AiProvider[]>("GET", "/ai/providers"),
   createAiProvider: (body: Record<string, string | null>) => json<AiProvider>("POST", "/ai/providers", body),

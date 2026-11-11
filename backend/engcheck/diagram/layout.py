@@ -1,5 +1,5 @@
 """Avtomatik joylashtirish: oqim bo'yicha chapdan o'ngga qatlamlar. Bir xil kirish — bir xil natija."""
-X0, Y0, DX, DY = 100, 90, 230, 130
+X0, Y0, DX, DY = 100, 90, 290, 130   # DX: tugunlar orasida quvur raqami sig'adigan joy
 
 
 def layout(nodes: list[dict], edges: list[dict]) -> None:

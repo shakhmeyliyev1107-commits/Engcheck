@@ -122,6 +122,11 @@ export function ProjectPage() {
               <div className="num">{d.rules.enabled}/{d.rules.total}</div>
               <div className="lbl">{t("dash.rules")}</div>
             </div>
+            <Link className="card" to={`/projects/${id}/diagram`} data-testid="card-diagram">
+              <div className="num">{d.diagram.exists ? d.diagram.nodes : "—"}</div>
+              <div className="lbl">{t(d.diagram.exists ? "dash.diagram" : "dash.diagramNone")}</div>
+              {d.diagram.differences > 0 && <small>{t("dash.diagramDiff", { count: d.diagram.differences })}</small>}
+            </Link>
             <Link className="card" to="/kb" data-testid="card-kb">
               <div className="num">{d.kb.sources}</div>
               <div className="lbl">{t("dash.kb")}</div>
