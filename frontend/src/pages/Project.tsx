@@ -127,6 +127,11 @@ export function ProjectPage() {
               <div className="lbl">{t(d.diagram.exists ? "dash.diagram" : "dash.diagramNone")}</div>
               {d.diagram.differences > 0 && <small>{t("dash.diagramDiff", { count: d.diagram.differences })}</small>}
             </Link>
+            <Link className="card" to={`/projects/${id}/layout3d`} data-testid="card-layout3d">
+              <div className="num">{d.layout3d.exists ? d.layout3d.items : "—"}</div>
+              <div className="lbl">{t(d.layout3d.exists ? "dash.layout3d" : "dash.layout3dNone")}</div>
+              {d.layout3d.differences > 0 && <small>{t("dash.diagramDiff", { count: d.layout3d.differences })}</small>}
+            </Link>
             <Link className="card" to="/kb" data-testid="card-kb">
               <div className="num">{d.kb.sources}</div>
               <div className="lbl">{t("dash.kb")}</div>

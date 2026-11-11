@@ -88,6 +88,8 @@ export interface RunInfo { id: number; started_at: string; ai_mode: string; ai_p
 export interface DgNode { id: string; label: string; kind: string; source: string; x: number; y: number; params: Record<string, string>; moved?: boolean; renamed?: boolean; original_label?: string; line_list_only?: boolean }
 export interface DgEdge { id: string; from: string; to: string; label: string; source: string; directed?: boolean }
 export interface DiagramData { exists: boolean; nodes: DgNode[]; edges: DgEdge[]; unconnected: string[]; differences: { kind: string; label: string }[]; orphan_edits: { id: number }[]; can_undo: boolean; can_redo: boolean; stale: boolean }
+export interface L3Item { id: string; label: string; kind: string; shape: string; source: string; x: number; y: number; z: number; rot: number; w: number; d: number; h: number; position_source: string; size_source: string; renamed?: boolean; original_label?: string }
+export interface Layout3dData { exists: boolean; items: L3Item[]; unit_assumed: string | null; plot_plan: string | null; differences: { kind: string; label: string }[]; orphan_edits: { id: number }[]; can_undo: boolean; can_redo: boolean; stale: boolean }
 export interface AiProvider { id: number; name: string; kind: string; base_url: string | null; model: string; embed_model: string | null; enabled: boolean; is_default: boolean; is_local: boolean; has_key: boolean }
 export interface AiStatus { mode: string; provider: string | null; reason: string | null; message: string | null; allow_cloud_ai: boolean }
 export interface KbSource { id: number; title: string; kind: string; standard_code: string | null; edition: string | null; status: string; license_type: string; filename: string | null; approved: boolean; added_by: string | null; chunks: number }
@@ -99,6 +101,7 @@ export interface Dashboard {
   last_run: RunInfo | null;
   kb: { sources: number; pending: number };
   diagram: { exists: boolean; stale: boolean; nodes: number; differences: number };
+  layout3d: { exists: boolean; stale: boolean; items: number; differences: number };
   rules: { enabled: number; total: number };
 }
 export interface Rule { code: string; title: string; severity: string; enabled: boolean; source: string }
@@ -145,6 +148,11 @@ export const api = {
   diagramUndo: (id: number) => json<DiagramData>("POST", `/projects/${id}/diagram/undo`),
   diagramRedo: (id: number) => json<DiagramData>("POST", `/projects/${id}/diagram/redo`),
   diagramSvg: async (id: number) => (await request("GET", `/projects/${id}/diagram.svg`)).blob(),
+  layout3d: (id: number) => json<Layout3dData>("GET", `/projects/${id}/layout3d`),
+  layout3dGenerate: (id: number) => json<Layout3dData>("POST", `/projects/${id}/layout3d/generate`),
+  layout3dEdit: (id: number, op: Record<string, unknown>) => json<Layout3dData>("POST", `/projects/${id}/layout3d/edits`, op),
+  layout3dUndo: (id: number) => json<Layout3dData>("POST", `/projects/${id}/layout3d/undo`),
+  layout3dRedo: (id: number) => json<Layout3dData>("POST", `/projects/${id}/layout3d/redo`),
   aiStatus: (id: number) => json<AiStatus>("GET", `/projects/${id}/ai-status`),
   aiProviders: () => json<AiProvider[]>("GET", "/ai/providers"),
   createAiProvider: (body: Record<string, string | null>) => json<AiProvider>("POST", "/ai/providers", body),

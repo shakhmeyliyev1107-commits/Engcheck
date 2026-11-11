@@ -16,7 +16,7 @@ export default defineConfig({
     {
       command:
         `bash -c "rm -rf ${TMP} && mkdir -p ${TMP} && npm run build --silent && ` +
-        `python ../samples/generate_sample_project.py ${TMP}/sample > /dev/null && ` +
+        `python ../samples/generate_sample_project.py ${TMP}/sample --plot-plan > /dev/null && ` +
         `cd ../backend && ENGCHECK_DATA_DIR=../frontend/${TMP}/data ENGCHECK_PORT=${PORT} python -m engcheck"`,
       url: `http://127.0.0.1:${PORT}/api/setup`,
       reuseExistingServer: false,

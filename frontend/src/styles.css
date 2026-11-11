@@ -103,3 +103,10 @@ label.check { display: flex; gap: 6px; align-items: center; }
 .legend i.inferred { border-top: 3px dashed var(--major); } .legend i.manual { border-top-color: var(--accent); }
 .dg-node.line-list-only rect { stroke-dasharray: 2 5; }
 .legend i.dotted { border-top: 3px dotted var(--ink); }
+.l3-view { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; height: 460px; position: relative; }
+.l3-view canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+.l3-table input[type=number] { width: 78px; padding: 4px 6px; }
+.l3-table tr.sel td { background: var(--info-bg); }
+.l3-table td small { display: block; color: var(--muted); }
+.swatch { display: inline-block; width: 14px; height: 14px; border-radius: 3px; vertical-align: -2px; margin-right: 6px; background: #5d6877; }
+.swatch.assumed { opacity: .45; } .swatch.manual { background: #0f5c8c; }
