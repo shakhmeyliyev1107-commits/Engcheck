@@ -17,6 +17,9 @@ export function Projects() {
   const [industry, setIndustry] = useState("gas_processing");
   const [stage, setStage] = useState("DD");
   const [formError, setFormError] = useState<string | null>(null);
+  const [pkgFile, setPkgFile] = useState<File | null>(null);
+  const [pkgPass, setPkgPass] = useState("");
+  const [importing, setImporting] = useState(false);
 
   const create = async (e: FormEvent) => {
     e.preventDefault();
@@ -26,6 +29,21 @@ export function Projects() {
       navigate(`/projects/${project.id}`);
     } catch (err) {
       setFormError(errorText(err));
+    }
+  };
+
+  const importPackage = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!pkgFile) return;
+    setFormError(null);
+    setImporting(true);
+    try {
+      const r = await api.importProject(pkgFile, pkgPass);
+      window.sessionStorage.setItem("engcheck.importNote", t("pkg.imported", { documents: r.documents, restored: r.decisions_restored, unmatched: r.decisions_unmatched }));
+      navigate(`/projects/${r.project.id}`);
+    } catch (err) {
+      setFormError(errorText(err));
+      setImporting(false);
     }
   };
 
@@ -53,6 +71,13 @@ export function Projects() {
           </label>
           <button className="primary">{t("projects.new")}</button>
           <ErrorNote text={formError} />
+        </form>
+      )}
+      {can(user, "upload") && (
+        <form className="panel filters" onSubmit={importPackage} style={{ marginTop: 12 }} data-testid="import-form">
+          <label className="field">{t("pkg.file")}<input type="file" accept=".engpkg" onChange={(e) => setPkgFile(e.target.files?.[0] ?? null)} data-testid="import-file" required /></label>
+          <label className="field">{t("pkg.passphrase")}<input type="password" value={pkgPass} onChange={(e) => setPkgPass(e.target.value)} autoComplete="off" data-testid="import-pass" /></label>
+          <button disabled={importing || !pkgFile} data-testid="import-submit">{t("pkg.import")}</button>
         </form>
       )}
       {data && data.length === 0 && <p className="muted">{t("projects.empty")}</p>}

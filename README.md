@@ -5,10 +5,11 @@ tozalash) loyiha hujjatlarini FEED, Detail Design va As-Built bosqichlarida
 tekshiradi: hujjatlardan teg va parametrlarni ajratadi, ularni o‘zaro
 solishtiradi va nomuvofiqliklarni manbasi bilan ko‘rsatadi.
 
-**Hozirgi holat (1- va 2-sikllar):** deterministik tekshiruv dvigateli, AI
+**Hozirgi holat (1–3-sikllar):** deterministik tekshiruv dvigateli, AI
 provayderlarini ulash (bulutli va lokal), bilimlar bazasi (RAG), manbali AI
-izoh va AI tekshiruv. Desktop o‘rnatuvchi, sxema va 3D model keyingi sikllarda
-— pastdagi "Hali yo‘q" bo‘limiga qarang.
+izoh va AI tekshiruv, desktop qobiq, baza shifrlash, loyiha paketini
+eksport/import. Sxema va 3D model keyingi sikllarda — pastdagi "Hali yo‘q"
+bo‘limiga qarang.
 
 ## Talablar
 
@@ -156,9 +157,81 @@ yoqadi va o‘chiradi.
 - Parollar argon2 bilan xeshlanadi; sessiya tokeni 12 soat amal qiladi.
 - Har bir o‘zgartiruvchi harakat audit jurnaliga yoziladi. Jurnal
   xesh-zanjirli: **Boshqaruv** sahifasi uning butunligini tekshiradi.
-- **Baza hozircha shifrlanmagan** (oddiy SQLite fayli `ENGCHECK_DATA_DIR`
-  ichida). Maxfiy loyihalar uchun papkani disk shifrlash (BitLocker,
-  FileVault, LUKS) bilan himoyalang. SQLCipher 3-siklda qo‘shiladi.
+- Baza shifrlash va boshqa himoya choralari — "Ma'lumotlar himoyasi" bo‘limida.
+
+## Desktop ilova
+
+Ilovani oynada ochish (brauzersiz). Qobiq Python xizmatini o‘zi ishga
+tushiradi (har safar bo‘sh portda) va yopilganda to‘xtatadi.
+
+```bash
+cd desktop && npm install && npm start
+```
+
+Ma'lumotlar Electron'ning foydalanuvchi papkasida saqlanadi (Windows:
+`%APPDATA%\EngCheck\data`, macOS: `~/Library/Application Support/EngCheck/data`,
+Linux: `~/.config/EngCheck/data`).
+
+### O‘rnatuvchini yig‘ish
+
+O‘rnatuvchi shu kompyuterda, o‘sha operatsion tizim uchun quriladi. Bu
+buyruqlar ishlab chiqish muhitida sinalmagan — birinchi yig‘ishda xato chiqsa,
+xabarini saqlab qo‘ying.
+
+```bash
+cd frontend && npm install && npm run build && cd ..
+```
+
+```bash
+cd backend && pip install pyinstaller && pyinstaller --name engcheck-server --onedir --collect-all engcheck --collect-all sqlcipher3 --collect-all ezdxf --collect-all pdfplumber server_entry.py && cd ..
+```
+
+```bash
+cd desktop && npm install && npm run dist
+```
+
+Natija `desktop/dist/` da. Ilova imzolanmagan: Windows va macOS birinchi
+ochishda ogohlantiradi.
+
+## Ma'lumotlar himoyasi
+
+- **Baza shifrlash (SQLCipher).** `pip install -e "backend[encryption]"`
+  o‘rnatilgan bo‘lsa, yangi baza shifrlangan holda yaratiladi. Mavjud ochiq
+  bazani ko‘chirish (ilova to‘xtatilgan holda):
+
+  ```bash
+  cd backend && python -m engcheck encrypt-db
+  ```
+
+  Ochiq nusxa `engcheck.db.plain.bak` nomi bilan qoladi — tekshirib, o‘zingiz
+  o‘chiring. O‘chirib qo‘yish: `ENGCHECK_ENCRYPT=0`.
+- **Kalit qayerda.** Baza kaliti API kalitlari bilan bir omborda. OS kalit
+  ombori (`backend[keyring]`) bo‘lmasa, kalit ma'lumotlar papkasidagi faylda
+  turadi: bu baza faylining alohida nusxasi tarqalishidan himoya qiladi,
+  butun papkani olgan odamdan emas.
+- **Yuklangan asl hujjatlar diskda shifrlanmaydi.** Maxfiy loyihalar uchun
+  diskni shifrlang (BitLocker, FileVault, LUKS).
+- **Kalit yo‘qolsa, shifrlangan bazani ochib bo‘lmaydi.** Ma'lumotlar
+  papkasini boshqa kompyuterga ko‘chirganda `secret.key` va `secrets.enc` ni
+  ham ko‘chiring (yoki loyiha paketidan foydalaning).
+- **Boshqaruv** sahifasi joriy himoya darajasini ko‘rsatadi.
+- Xizmat faqat `127.0.0.1` da tinglaydi va begona `Host` sarlavhali
+  so‘rovlarni rad etadi.
+
+## Loyiha paketi
+
+Loyihani hamkasbga bitta `.engpkg` fayl sifatida berish:
+
+- **Eksport** (loyiha sahifasi; yetakchi muhandis yoki administrator): asl
+  hujjatlar va topilmalar bo‘yicha qarorlar. **Kirmaydi:** API kalitlari, AI
+  provayderlari, foydalanuvchilar, audit jurnali, bilimlar bazasi, AI izohlari
+  va AI topilmalari.
+- **Parol ixtiyoriy.** Parol qo‘yilsa, paket shifrlanadi. Parolsiz paket faqat
+  shikastlanishdan himoyalangan — uni ochib o‘qish va o‘zgartirish mumkin.
+  Maxfiy loyihani faqat parol bilan yuboring; parolni boshqa kanal orqali ayting.
+- **Import** (Loyihalar sahifasi): yangi loyiha yaratiladi, hujjatlar qayta
+  tahlil qilinadi, qoidalar ishga tushadi, qarorlar tiklanadi. Bulutli AI
+  roziligi ko‘chmaydi — qabul qiluvchi o‘zi beradi.
 
 ## AI va bilimlar bazasi
 
@@ -249,6 +322,10 @@ cd frontend && npx vitest run
 cd frontend && npx playwright test --trace off
 ```
 
+```bash
+cd desktop && npm test
+```
+
 Playwright testlari interfeysni o‘zi qurib, xizmatni vaqtinchalik ma'lumotlar
 papkasi bilan 8799-portda va soxta lokal AI serverini 8796-portda ishga tushiradi.
 
@@ -263,6 +340,7 @@ backend/engcheck/
   kb/        bilimlar bazasi: bo'laklash, qidiruv, indekslash
   api/       HTTP API
 frontend/    React interfeysi (uz / en / ru)
+desktop/     Electron qobig'i
 samples/     namunaviy loyiha generatori
 docs/superpowers/   spetsifikatsiya va amalga oshirish rejasi
 ```
@@ -271,7 +349,7 @@ docs/superpowers/   spetsifikatsiya va amalga oshirish rejasi
 
 | Imkoniyat | Sikl |
 |---|---|
-| Desktop o‘rnatuvchi (Electron), baza shifrlash, loyiha paketini eksport/import | 3 |
 | Prinsipial sxema generatori va tahrirlagichi | 4 |
 | 3D joylashuv modeli va uni tahrirlash | 5 |
+| Yuklangan fayllarni diskda shifrlash, kod imzolash, avtomatik yangilanish | rejalashtirilmagan |
 | OCR (skanerlangan PDF) | rejalashtirilmagan |

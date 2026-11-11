@@ -8,10 +8,10 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from ..config import Settings
 from ..ai.registry import build
-from ..core.db import init_db
+from ..core import dbcrypt
 from ..core.secrets import SecretStore
 from . import (routes_ai, routes_audit, routes_auth, routes_dashboard, routes_documents, routes_findings,
-               routes_kb, routes_projects, routes_reviews)
+               routes_kb, routes_projects, routes_reviews, routes_system)
 from .deps import locale_of
 from .errors import MESSAGES, ApiError, localize
 
@@ -27,13 +27,26 @@ def _error(request: Request, status: int, code: str, **fmt) -> JSONResponse:
 def create_app(settings: Settings, frontend_dist: Path | None = FRONTEND_DIST) -> FastAPI:
     app = FastAPI(title="EngCheck", docs_url="/api/docs", openapi_url="/api/openapi.json")
     app.state.settings = settings
-    app.state.session_factory = init_db(settings.db_url)
     app.state.secrets = SecretStore(settings.data_dir)
+    app.state.session_factory, app.state.db_encrypted = dbcrypt.open_database(settings, app.state.secrets)
     app.state.provider_factory = build   # testlarda soxta provayder bilan almashtiriladi
 
     for module in (routes_auth, routes_projects, routes_documents, routes_reviews, routes_findings,
-                   routes_dashboard, routes_audit, routes_ai, routes_kb):
+                   routes_dashboard, routes_audit, routes_ai, routes_kb, routes_system):
         app.include_router(module.router, prefix="/api")
+
+    allowed_hosts = {h.lower() for h in settings.allowed_hosts}
+
+    @app.middleware("http")
+    async def host_guard(request: Request, call_next):
+        """Begona Host sarlavhali so'rovni rad etadi (DNS rebinding: brauzerdagi begona sahifa lokal xizmatga murojaat qila olmasin)."""
+        host = request.headers.get("host", "").lower()
+        name, sep, port = host.rpartition(":") if not host.endswith("]") else (host, "", "")
+        if not sep:
+            name, port = host, ""
+        if name not in allowed_hosts or (sep and not port.isdigit()):
+            return _error(request, 400, "bad_host")
+        return await call_next(request)
 
     @app.exception_handler(ApiError)
     async def api_error(request: Request, exc: ApiError):

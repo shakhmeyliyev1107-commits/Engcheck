@@ -1,17 +1,29 @@
 """Baza ulanishi."""
 from sqlalchemy import create_engine, event, inspect, text
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
+from sqlalchemy.pool import QueuePool
 
 
 class Base(DeclarativeBase):
     pass
 
 
-def init_db(db_url: str) -> sessionmaker:
-    """Jadvallarni yaratadi va sessiya fabrikasini qaytaradi."""
+def init_db(db_url: str, key: str | None = None, module=None) -> sessionmaker:
+    """Jadvallarni yaratadi va sessiya fabrikasini qaytaradi.
+
+    key va module (sqlcipher3) berilsa, baza SQLCipher bilan shifrlangan holda ochiladi.
+    """
     from . import models  # noqa: F401  (jadvallar ro'yxatdan o'tishi uchun)
 
-    engine = create_engine(db_url, connect_args={"check_same_thread": False})
+    if key is not None:
+        from sqlalchemy.engine import URL
+        path = db_url.removeprefix("sqlite:///")
+        # Kalit — tasodifiy 256 bit, "xom kalit" ko'rinishida beriladi: har ulanishda parol hisobi (KDF) bajarilmaydi.
+        url = URL.create("sqlite+pysqlcipher", password=f"x'{key}'", database=path)
+        # QueuePool aniq ko'rsatiladi: bu dialektning standart hovuzi oqimlar ko'payganda ishlatilayotgan ulanishni yopib qo'yadi.
+        engine = create_engine(url, module=module, poolclass=QueuePool, connect_args={"check_same_thread": False})
+    else:
+        engine = create_engine(db_url, poolclass=QueuePool, connect_args={"check_same_thread": False})
 
     @event.listens_for(engine, "connect")
     def _fk_on(dbapi_conn, _):

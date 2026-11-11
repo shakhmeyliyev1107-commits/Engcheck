@@ -26,6 +26,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = ["pytest>=8", "reportlab>=4"]
 keyring = ["keyring>=24"]
+encryption = ["sqlcipher3-wheels>=0.5"]
 
 [tool.setuptools.packages.find]
 include = ["engcheck*"]

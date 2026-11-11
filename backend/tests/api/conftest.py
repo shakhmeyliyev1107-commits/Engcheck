@@ -15,7 +15,7 @@ def app(settings):
 
 @pytest.fixture
 def client(app):
-    with TestClient(app) as c:
+    with TestClient(app, base_url="http://127.0.0.1") as c:
         yield c
 
 
@@ -29,7 +29,7 @@ def client_as(app):
             if not db.query(__import__("engcheck.core.models", fromlist=["User"]).User).filter_by(login=role).first():
                 create_user(db, role, PASSWORD, Role(role))
                 db.commit()
-        c = TestClient(app)
+        c = TestClient(app, base_url="http://127.0.0.1")
         token = c.post("/api/auth/login", json={"login": role, "password": PASSWORD}).json()["token"]
         c.headers["Authorization"] = f"Bearer {token}"
         clients.append(c)

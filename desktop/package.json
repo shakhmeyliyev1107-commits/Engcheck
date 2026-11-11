@@ -1,0 +1,44 @@
+{
+  "name": "engcheck-desktop",
+  "version": "0.3.0",
+  "description": "EngCheck — muhandislik hujjatlarini tekshirish (desktop qobiq)",
+  "private": true,
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test test/*.test.js",
+    "dist": "electron-builder",
+    "smoke": "ENGCHECK_SMOKE=1 xvfb-run -a electron --no-sandbox ."
+  },
+  "devDependencies": {
+    "electron": "^45.2.3",
+    "electron-builder": "^26.18.0"
+  },
+  "build": {
+    "appId": "uz.engcheck.desktop",
+    "productName": "EngCheck",
+    "files": [
+      "src/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "../backend/dist/engcheck-server",
+        "to": "engcheck-server"
+      },
+      {
+        "from": "../frontend/dist",
+        "to": "frontend"
+      }
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "linux": {
+      "target": "AppImage",
+      "category": "Office"
+    },
+    "mac": {
+      "target": "dmg"
+    }
+  }
+}
