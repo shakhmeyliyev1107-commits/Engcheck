@@ -1,6 +1,6 @@
 from typing import Literal
 
-from fastapi import APIRouter, Depends, Request, Response
+from fastapi import APIRouter, Depends, File, Form, Request, Response, UploadFile
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session as Db
 
@@ -8,6 +8,7 @@ from ..core import audit
 from ..core.auth import Perm
 from ..core.models import Document, Project, ReviewRun, Stage, User
 from ..ingest.service import delete_document
+from ..package import service as pkg
 from .deps import get_db, require
 from .errors import ApiError
 from .serializers import project_out
@@ -79,3 +80,37 @@ def delete_project(project_id: int, request: Request,
     db.expire_all()
     audit.record(db, user.id, "project.delete", "project", project_id, {"name": name})
     return Response(status_code=204)
+
+
+MAX_UPLOAD = 1024 ** 3   # import qilinadigan paket faylining eng katta hajmi
+
+
+class ExportBody(BaseModel):
+    passphrase: str | None = None
+
+
+@router.post("/projects/{project_id}/export")
+def export_project(project_id: int, request: Request, body: ExportBody | None = None,
+                   user: User = Depends(require(Perm.manage_kb)), db: Db = Depends(get_db)):
+    """Loyiha paketini qaytaradi. Ma'lumot tizimdan chiqadi, shuning uchun yetakchi muhandis yoki administrator."""
+    project = get_project(db, project_id)
+    data = pkg.export_project(db, request.app.state.settings, project_id, user, (body.passphrase if body else None) or None)
+    return Response(content=data, media_type="application/octet-stream",
+                    headers={"Content-Disposition": f'attachment; filename="project-{project.id}.engpkg"'})
+
+
+@router.post("/projects/import", status_code=201)
+def import_project(request: Request, file: UploadFile = File(...), passphrase: str | None = Form(None),
+                   user: User = Depends(require(Perm.upload)), db: Db = Depends(get_db)):
+    chunks, size = [], 0
+    while chunk := file.file.read(1 << 20):
+        size += len(chunk)
+        if size > MAX_UPLOAD:
+            raise ApiError(422, "pkg_too_large")
+        chunks.append(chunk)
+    try:
+        result = pkg.import_project(db, request.app.state.settings, user, b"".join(chunks), passphrase or None)
+    except pkg.PackageError as exc:
+        raise ApiError(422, f"pkg_{exc.code}") from exc
+    return {"project": project_out(db.get(Project, result.project_id)), "documents": result.documents,
+            "decisions_restored": result.decisions_restored, "decisions_unmatched": result.decisions_unmatched}
