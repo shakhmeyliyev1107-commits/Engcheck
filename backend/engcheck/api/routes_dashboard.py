@@ -39,5 +39,12 @@ def dashboard(project_id: int, request: Request, _: User = Depends(require(Perm.
         "last_run": None if run is None else run_out(run, locale_of(request)),
         "kb": {"sources": db.query(KbSource).filter_by(approved=True).count(),
                "pending": db.query(KbSource).filter_by(approved=False).count()},
+        "diagram": _diagram_summary(db, project_id),
         "rules": {"enabled": sum(1 for r in rules if r.enabled), "total": len(rules)},
     }
+
+
+def _diagram_summary(db: Db, project_id: int) -> dict:
+    from ..diagram import service as diagram
+    d = diagram.get(db, project_id)
+    return {"exists": d["exists"], "stale": d["stale"], "nodes": len(d["nodes"]), "differences": len(d["differences"])}

@@ -4,6 +4,7 @@ import { api, hasToken, setApiLocale, setToken, setUnauthorizedHandler, type Use
 import { Layout } from "./components/Layout";
 import { I18nContext, type Locale, storedLocale, storeLocale, translate, type TFunc } from "./i18n";
 import { Admin } from "./pages/Admin";
+import { DiagramPage } from "./pages/Diagram";
 import { DocumentView } from "./pages/DocumentView";
 import { FindingDetailPage } from "./pages/FindingDetail";
 import { Findings } from "./pages/Findings";
@@ -97,6 +98,7 @@ export function App() {
               <Route path="/projects" element={<Projects />} />
               <Route path="/projects/:id" element={<ProjectPage />} />
               <Route path="/projects/:id/findings" element={<Findings />} />
+              <Route path="/projects/:id/diagram" element={<DiagramPage />} />
               <Route path="/findings/:id" element={<FindingDetailPage />} />
               <Route path="/documents/:id" element={<DocumentView />} />
               <Route path="/kb" element={<Kb />} />

@@ -23,6 +23,10 @@ _SYNONYMS: dict[str, list[str]] = {
     "flow_rate": ["flow rate", "flow", "capacity", "rated flow", "sarf", "unumdorlik", "расход",
                   "производительность"],
     "power": ["power", "motor power", "rated power", "quvvat", "dvigatel quvvati", "мощность"],
+    # Quvur uchlari. Juda umumiy so'zlar ("dan", "ga", "от", "до") ataylab kiritilmagan; bu ustunlar
+    # faqat quvurlar ro'yxatida hisobga olinadi (extract.py).
+    "line_from": ["from", "from equipment", "qayerdan", "откуда"],
+    "line_to": ["to", "to equipment", "qayerga", "куда"],
     "revision": ["revision", "rev", "reviziya", "ревизия"],
     "doc_number": ["document no", "doc no", "document number", "hujjat raqami", "номер документа"],
 }

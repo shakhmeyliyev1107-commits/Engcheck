@@ -14,6 +14,7 @@ _EMPTY = {"", "-", "–", "—"}
 _REF_RE = re.compile(r"\b([A-Z]{2,5}-[A-Z]{2,5}-\d{3,5})\s*,?\s*Rev\.?\s*([A-Z0-9]{1,3})\b", re.IGNORECASE)
 _CELL_CONTEXT = (DocType.EQUIPMENT_LIST, DocType.DATASHEET)
 MAX_SKIPPED = 50
+_LINE_ONLY = ("line_from", "line_to")
 
 
 @dataclass
@@ -88,7 +89,9 @@ class _Collector:
 
 def _find_header_row(table: Table, doc_type: DocType) -> tuple[int, dict[int, tuple[str, str | None]]] | None:
     for r, row in enumerate(table.rows[:HEADER_SCAN_ROWS]):
-        mapped = {c: m for c, cell in enumerate(row) if (m := match_header(cell.text))}
+        mapped = {c: m for c, cell in enumerate(row) if (m := match_header(cell.text))
+                  # "From"/"To" boshqa hujjatlarda (transmittal, yozishmalar) quvur uchi emas
+                  and (m[0] not in _LINE_ONLY or doc_type == DocType.LINE_LIST)}
         params = {m[0] for m in mapped.values()}
         if doc_type == DocType.MATERIAL_SPEC and "pipe_class" in params:
             return r, mapped
@@ -149,6 +152,8 @@ def _key_value(table: Table, page: Page, col: _Collector) -> bool:
         if len(row) < 2:
             continue
         key = match_header(row[0].text)
+        if key and key[0] in _LINE_ONLY:
+            key = None
         pairs.append((row, key))
     if sum(1 for _, key in pairs if key) < 2:
         return False
@@ -182,7 +187,7 @@ def _key_value(table: Table, page: Page, col: _Collector) -> bool:
 
 def _attrs(item, page: Page, col: _Collector) -> None:
     """DXF blok atributlari: kalit–qiymat sifatida."""
-    keyed = {k: match_header(k) for k in item.attrs}
+    keyed = {k: (m if (m := match_header(k)) and m[0] not in _LINE_ONLY else None) for k in item.attrs}
     tag_key = next((k for k, m in keyed.items() if m and m[0] == "tag"), None)
     tags = normalize_tags(item.attrs[tag_key]) if tag_key else []
     if len(tags) != 1:

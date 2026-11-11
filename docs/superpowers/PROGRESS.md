@@ -16,16 +16,23 @@ Foydalanuvchi ko'rsatmasi (2026-11-10): "o'zing to'g'ri deb bilganday tartib bil
 | 1 | Yadro va tekshiruv dvigateli | `main` da |
 | 2 | AI provayderlari, bilimlar bazasi (RAG) | `main` da (ko'rikdan o'tgan, tuzatilgan) |
 | 3 | Desktop qobiq (Electron), baza shifrlash, loyiha paketini eksport/import | `main` da (ko'rikdan o'tgan, tuzatilgan) |
-| 4 | Prinsipial sxema generatori **va tahrirlagichi** | boshlanmagan |
+| 4 | Prinsipial sxema generatori **va tahrirlagichi** | `main` da (ko'rikdan o'tgan, tuzatilgan) |
 | 5 | 3D joylashuv modeli **va tahrirlash** | boshlanmagan |
 
 ## Hozirgi qadam
-4-siklni boshlash: `feat/sikl-4` shoxi. Prinsipial sxema generatori va tahrirlagichi.
-Talab: `specs/2026-11-10-engcheck-yadro-va-tekshiruv-design.md`, "4- va 5-sikllar uchun qo'shimcha talab"
-(generator natijasi va muhandis tahriri alohida qatlamlarda; tahrir qayta yaratishda yo'qolmaydi; audit;
-orqaga qaytarish; asl hujjatlar o'zgarmaydi; tahrir va hujjatlar farqi topilma sifatida).
-Kirish ma'lumoti: `tags` (uskuna, quvur), `tag_params`, DXF koordinatalari (`tag_occurrences.location`).
-Chiqish: SVG blok-sxema (uskunalar tugun, quvurlar qirra); interfeysda sudrab ko'chirish, qo'shish, o'chirish, ulash.
+5-siklni boshlash: `feat/sikl-5` shoxi. 3D joylashuv modeli va tahrirlash.
+Reja: uskunalar (sxemadagi tugunlar) + civil ma'lumoti (DXF koordinatalari bo'lsa — joylashuv; bo'lmasa — avtomatik panjara,
+"taxminiy joylashuv" belgisi bilan). O'lchamlar: datasheetdagi diametr/uzunlik bo'lsa — hujjatdan, aks holda turi bo'yicha shartli
+o'lcham ("shartli" deb belgilanadi). three.js sahnasi; tahrirlar qatlami sxemadagidek (`backend/engcheck/diagram/edits.py` namunasi:
+move/rotate/resize/add/remove, undo/redo, qayta yaratishda saqlanadi, audit). Testlarni QISMLAB yuritish kerak
+(to'liq `pytest` bitta buyruqda ba'zan to'xtatiladi): `tests/core tests/review tests/kb tests/ai`, `tests/api`, `tests/package tests/test_cycle3_core.py`, `tests/diagram tests/ingest`.
+
+## 4-sikldan qolgan
+- Sxema `stale` belgisi faqat faol hujjatlar to'plami o'zgarsa yonadi (hujjat turi o'zgarsa — yo'q).
+- Qo'llanmagan (orphan) tahrirlar faqat son sifatida ko'rsatiladi; alohida o'chirib bo'lmaydi.
+- Sxemani klaviatura bilan tahrirlab bo'lmaydi (faqat sichqoncha/sensor).
+- Ketma-ket tez tahrirlarda javoblar tartibi nazorat qilinmaydi.
+- Sxema loyiha paketiga kirmaydi (import qilgan tomonda qayta yaratiladi, tahrirlar ko'chmaydi).
 
 ## 3-sikldan qolgan
 - O'rnatuvchini yig'ish (PyInstaller + electron-builder) sinalmagan; kod imzolash yo'q.
