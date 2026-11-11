@@ -18,6 +18,17 @@ siklda — pastdagi "Hali yo‘q" bo‘limiga qarang.
 
 ## O‘rnatish
 
+### Windows — bitta bosish bilan
+
+1. GitHub sahifasida **Code → Download ZIP** ni bosing va arxivni oddiy papkaga oching (masalan `C:\Engcheck`).
+2. **`ornatish.bat`** faylini ikki marta bosing. U Python va Node.js yo‘q bo‘lsa `winget` orqali o‘rnatadi,
+   kutubxonalarni yuklaydi, interfeysni quradi va dasturni brauzerda ochadi (birinchi safar 5–15 daqiqa, internet kerak).
+3. Keyingi safar **`ishga-tushirish.bat`** ni bosing.
+
+Skriptlar `windows/` papkasida. Ular Windows'da hali sinovdan o‘tkazilmagan: xato chiqsa, oynadagi matnni yuboring.
+
+### Qo‘lda
+
 ```bash
 pip install -e "backend[dev]"
 ```
