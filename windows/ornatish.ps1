@@ -3,6 +3,7 @@
 $ErrorActionPreference = "Stop"
 $Root = Split-Path -Parent $PSScriptRoot
 Set-Location $Root
+try { Start-Transcript -Path (Join-Path $PSScriptRoot "ornatish-log.txt") -Force | Out-Null } catch { }
 
 function Step($text) { Write-Host ""; Write-Host "==> $text" -ForegroundColor Cyan }
 function Refresh-Path {

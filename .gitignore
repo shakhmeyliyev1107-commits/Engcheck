@@ -8,3 +8,4 @@ data/
 test-results/
 playwright-report/
 frontend/e2e/.tmp/
+windows/ornatish-log.txt
