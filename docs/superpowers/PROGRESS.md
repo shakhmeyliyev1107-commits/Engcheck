@@ -15,16 +15,16 @@ Foydalanuvchi ko'rsatmasi (2026-11-10): "o'zing to'g'ri deb bilganday tartib bil
 |---|---|---|
 | 1 | Yadro va tekshiruv dvigateli | `main` da |
 | 2 | AI provayderlari, bilimlar bazasi (RAG) | `main` da (ko'rikdan o'tgan, tuzatilgan) |
-| 3 | Desktop qobiq (Electron), baza shifrlash, loyiha paketini eksport/import | boshlanmagan |
+| 3 | Desktop qobiq (Electron), baza shifrlash, loyiha paketini eksport/import | `feat/sikl-3` (GitHub'da): kod tayyor, yakuniy ko'rik kutilmoqda |
 | 4 | Prinsipial sxema generatori **va tahrirlagichi** | boshlanmagan |
 | 5 | 3D joylashuv modeli **va tahrirlash** | boshlanmagan |
 
 ## Hozirgi qadam
-3-siklni boshlash: `feat/sikl-3` shoxi, spetsifikatsiya → reja → kod.
-Doira: Electron qobiq (yupqa: Python xizmatini ishga tushiradi, tasodifiy port, oynani ochadi),
-baza shifrlash (SQLCipher mavjud bo'lsa; bo'lmasa aniq ogohlantirish), loyiha paketini
-eksport/import (imzolangan zip; litsenziyali bilimlar bazasi manbalari va API kalitlari paketga kirmaydi).
-GitHub: `origin` = github.com/shakhmeyliyev1107-commits/engcheck (ulangan). Har sikl `main` ga qo'shilgach: `git push -u origin main`; ish shoxini ham yuborib borish.
+3-sikl ko'rigi: tekshiruvchi natijasini kutish → Critical/Important ni test bilan tuzatish →
+`main` ga `--no-ff` merge → `git push origin main` → 4-sikl (prinsipial sxema generatori va tahrirlagichi;
+talab spetsifikatsiyada: `specs/2026-11-10-engcheck-yadro-va-tekshiruv-design.md`, "4- va 5-sikllar uchun qo'shimcha talab").
+Tekshiruvchi javob bermasa (limit): `git diff main..feat/sikl-3` ni o'zim ko'rib chiqaman
+(paket importi: yo'l hujumi, zip-bomba, tranzaksiya; shifrlash: kalit, ko'chirish; Host himoyasi; Electron sozlamalari).
 
 ## 2-sikldan qolgan mayda kamchiliklar
 - Har so'rovda provayder obyekti qayta quriladi va yopilmaydi; `ai-status` har safar ping qiladi (kesh kerak).
