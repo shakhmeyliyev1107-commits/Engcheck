@@ -365,3 +365,25 @@ class FindingAiNote(Base):
     created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
     decided_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+
+class Diagram(Base):
+    """Prinsipial sxemaning YARATILGAN qatlami (generator natijasi). Muhandis tahrirlari — diagram_edits da."""
+    __tablename__ = "diagrams"
+    id: Mapped[int] = _pk()
+    project_id: Mapped[int] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"), unique=True)
+    generated: Mapped[dict] = mapped_column(JSON)
+    source_hash: Mapped[str] = mapped_column(String(64))
+    generated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    generated_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+
+
+class DiagramEdit(Base):
+    """Sxemaga muhandis kiritgan bitta tahrir. Qayta yaratishda o'chmaydi."""
+    __tablename__ = "diagram_edits"
+    id: Mapped[int] = _pk()
+    project_id: Mapped[int] = _fk("projects.id")
+    op: Mapped[dict] = mapped_column(JSON)
+    undone: Mapped[bool] = mapped_column(Boolean, default=False)
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)

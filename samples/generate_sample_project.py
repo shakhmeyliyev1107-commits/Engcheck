@@ -87,13 +87,13 @@ def _line_list(path: Path) -> None:
     ws["A2"] = "Document No: GP-LL-001 Rev B"
     ws.append([])
     ws.append(["Line No", "Size", "Fluid", "Pipe Class", "Design Pressure, barg",
-               "Design Temperature, °C"])
+               "Design Temperature, °C", "From", "To"])
     rows = [
-        ['10"-HC-1001-A1A', '10"', "Sour Gas", "A1A", 16, 120],
-        ['8"-AM-1002-A1A', '8"', "Lean Amine", "A1A", 16, 120],
-        ['6"-AM-1003-B1A', '6"', "Rich Amine", "B1A", 16, 120],
-        ['6"-AM-1004-A1A', '6"', "Lean Amine", "A1A", 16, 120],   # ataylab: P&ID da yo'q
-        ['4"-AM-1005-B2C', '4"', "Amine Drain", "B2C", 5, 120],   # ataylab: B2C spetsifikatsiyada yo'q
+        ['10"-HC-1001-A1A', '10"', "Sour Gas", "A1A", 16, 120, "B.L.", "V-101"],
+        ['8"-AM-1002-A1A', '8"', "Lean Amine", "A1A", 16, 120, "P-101A", "V-101"],
+        ['6"-AM-1003-B1A', '6"', "Rich Amine", "B1A", 16, 120, "V-101", "V-102"],
+        ['6"-AM-1004-A1A', '6"', "Lean Amine", "A1A", 16, 120, "E-101", "P-101A"],   # ataylab: P&ID da yo'q
+        ['4"-AM-1005-B2C', '4"', "Amine Drain", "B2C", 5, 120, "V-102", "Drain"],    # ataylab: B2C spetsifikatsiyada yo'q
     ]
     for row in rows:
         ws.append(row)

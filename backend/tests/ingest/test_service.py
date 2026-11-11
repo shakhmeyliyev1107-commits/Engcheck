@@ -33,7 +33,7 @@ def test_original_file_stored_unchanged(db, settings, ingest_sample, sample_docs
 def test_same_tag_across_docs_is_one_row(db, ingest_sample):
     tag = db.query(Tag).filter_by(tag="V-101").one()
     docs = {o.document_id for o in db.query(TagOccurrence).filter_by(tag_id=tag.id)}
-    assert len(docs) == 3
+    assert len(docs) == 4   # P&ID, uskunalar ro'yxati, datasheet va quvurlar ro'yxati (From/To ustunlari)
 
 
 def test_refs_persisted(db, ingest_sample):

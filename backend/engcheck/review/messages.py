@@ -9,15 +9,15 @@ PARAM_NAMES = {
     "uz": {"design_pressure": "loyiha bosimi", "operating_pressure": "ish bosimi",
            "design_temperature": "loyiha harorati", "operating_temperature": "ish harorati",
            "material": "material", "pipe_class": "quvur sinfi", "size": "o‘lcham",
-           "fluid": "muhit", "flow_rate": "sarf", "power": "quvvat"},
+           "fluid": "muhit", "flow_rate": "sarf", "power": "quvvat", "line_from": "qayerdan", "line_to": "qayerga"},
     "en": {"design_pressure": "design pressure", "operating_pressure": "operating pressure",
            "design_temperature": "design temperature", "operating_temperature": "operating temperature",
            "material": "material", "pipe_class": "pipe class", "size": "size", "fluid": "fluid",
-           "flow_rate": "flow rate", "power": "power"},
+           "flow_rate": "flow rate", "power": "power", "line_from": "from", "line_to": "to"},
     "ru": {"design_pressure": "расчётное давление", "operating_pressure": "рабочее давление",
            "design_temperature": "расчётная температура", "operating_temperature": "рабочая температура",
            "material": "материал", "pipe_class": "класс трубопровода", "size": "размер",
-           "fluid": "среда", "flow_rate": "расход", "power": "мощность"},
+           "fluid": "среда", "flow_rate": "расход", "power": "мощность", "line_from": "откуда", "line_to": "куда"},
 }
 
 DOC_TYPE_NAMES = {

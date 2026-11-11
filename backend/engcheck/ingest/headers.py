@@ -23,6 +23,8 @@ _SYNONYMS: dict[str, list[str]] = {
     "flow_rate": ["flow rate", "flow", "capacity", "rated flow", "sarf", "unumdorlik", "расход",
                   "производительность"],
     "power": ["power", "motor power", "rated power", "quvvat", "dvigatel quvvati", "мощность"],
+    "line_from": ["from", "from equipment", "qayerdan", "dan", "откуда", "от"],
+    "line_to": ["to", "to equipment", "qayerga", "ga", "куда", "до"],
     "revision": ["revision", "rev", "reviziya", "ревизия"],
     "doc_number": ["document no", "doc no", "document number", "hujjat raqami", "номер документа"],
 }
