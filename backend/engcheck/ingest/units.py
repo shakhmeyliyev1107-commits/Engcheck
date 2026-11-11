@@ -14,6 +14,8 @@ PARAM_KIND: dict[str, str] = {
     "operating_temperature": "temperature",
     "flow_rate": "flow",
     "size": "length",
+    "equipment_height": "length",
+    "equipment_length": "length",
     "power": "power",
     "material": "text",
     "pipe_class": "text",

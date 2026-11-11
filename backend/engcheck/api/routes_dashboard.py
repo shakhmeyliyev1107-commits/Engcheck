@@ -40,6 +40,7 @@ def dashboard(project_id: int, request: Request, _: User = Depends(require(Perm.
         "kb": {"sources": db.query(KbSource).filter_by(approved=True).count(),
                "pending": db.query(KbSource).filter_by(approved=False).count()},
         "diagram": _diagram_summary(db, project_id),
+        "layout3d": _layout_summary(db, project_id),
         "rules": {"enabled": sum(1 for r in rules if r.enabled), "total": len(rules)},
     }
 
@@ -48,3 +49,9 @@ def _diagram_summary(db: Db, project_id: int) -> dict:
     from ..diagram import service as diagram
     d = diagram.get(db, project_id)
     return {"exists": d["exists"], "stale": d["stale"], "nodes": len(d["nodes"]), "differences": len(d["differences"])}
+
+
+def _layout_summary(db: Db, project_id: int) -> dict:
+    from ..layout3d import service as layout3d
+    m = layout3d.get(db, project_id)
+    return {"exists": m["exists"], "stale": m["stale"], "items": len(m["items"]), "differences": len(m["differences"])}
