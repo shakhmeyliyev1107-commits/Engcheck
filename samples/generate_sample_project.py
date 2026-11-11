@@ -153,6 +153,26 @@ def _material_spec(path: Path) -> None:
     d.save(path)
 
 
+def plot_plan(path: Path) -> SampleDoc:
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
+    return _plot_plan(Path(path))
+
+
+def _plot_plan(path: Path) -> SampleDoc:
+    """Bosh reja (civil): uskunalar joylashuvi, birlik — millimetr. Asosiy 6 hujjatga kirmaydi; alohida yuklanadi."""
+    doc = ezdxf.new("R2010")
+    block = doc.blocks.new("EQUIPMENT")
+    block.add_circle((0, 0), 1000)
+    block.add_attdef("TAG", (-800, 0), dxfattribs={"height": 400})
+    msp = doc.modelspace()
+    for tag, (x, y) in {"V-101": (10000, 20000), "V-102": (22000, 20000), "P-101A": (10000, 8000),
+                        "P-101B": (13000, 8000), "E-101": (22000, 8000)}.items():
+        msp.add_blockref("EQUIPMENT", (x, y)).add_auto_attribs({"TAG": tag})
+    msp.add_mtext("PLOT PLAN - AMINE TREATING UNIT\nGP-PLT-001 Rev A", dxfattribs={"insert": (30000, 2000)})
+    doc.saveas(path)
+    return SampleDoc(path, DocType.OTHER, Discipline.civil, "GP-PLT-001", "A")
+
+
 def generate(out_dir: Path) -> list[SampleDoc]:
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
@@ -175,3 +195,7 @@ if __name__ == "__main__":
     target = Path(sys.argv[1] if len(sys.argv) > 1 else "sample_project")
     for doc in generate(target):
         print(f"{doc.doc_type.value:15} {doc.path}")
+    # --plot-plan: bosh reja chizmasini alohida papkaga yozadi (asosiy 6 hujjat to'plamini o'zgartirmaydi)
+    extra = plot_plan(Path(str(target) + "_extra") / "GP-PLT-001_RevA.dxf") if "--plot-plan" in sys.argv else None
+    if extra:
+        print(f"{'PLOT PLAN':15} {extra.path}  (intizom: civil; alohida yuklang)")

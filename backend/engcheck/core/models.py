@@ -387,3 +387,24 @@ class DiagramEdit(Base):
     undone: Mapped[bool] = mapped_column(Boolean, default=False)
     user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+
+class Layout3d(Base):
+    """3D joylashuv modelining YARATILGAN qatlami. Muhandis tahrirlari — layout_edits da."""
+    __tablename__ = "layouts"
+    id: Mapped[int] = _pk()
+    project_id: Mapped[int] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"), unique=True)
+    generated: Mapped[dict] = mapped_column(JSON)
+    source_hash: Mapped[str] = mapped_column(String(64))
+    generated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    generated_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+
+
+class LayoutEdit(Base):
+    __tablename__ = "layout_edits"
+    id: Mapped[int] = _pk()
+    project_id: Mapped[int] = _fk("projects.id")
+    op: Mapped[dict] = mapped_column(JSON)
+    undone: Mapped[bool] = mapped_column(Boolean, default=False)
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)

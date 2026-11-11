@@ -144,3 +144,15 @@ def test_multiple_pages_keep_page_numbers():
     d = ParsedDocument([Page(1, "", [t1]), Page(2, "", [t2])])
     ex = extract(d, DocType.DATASHEET)
     assert by(ex, "P-101B", "power").page_no == 2
+
+
+def test_length_and_height_columns_are_equipment_dimensions_only_in_equipment_documents():
+    line = table([["Line No", "Size", "Length", "Fluid"], ['6"-AM-1004-A1A', '6"', "120", "Amine"]])
+    ex = extract(doc(line), DocType.LINE_LIST)
+    assert {p.param for p in ex.params} == {"size", "fluid"} and "Length" in ex.unmapped_headers   # quvur uzunligi gabarit emas
+    eq = table([["Tag No.", "Height, mm", "Length, mm"], ["V-101", "9000", "3000"]])
+    ex = extract(doc(eq), DocType.EQUIPMENT_LIST)
+    assert by(ex, "V-101", "equipment_height").si_value == 9000.0 and by(ex, "V-101", "equipment_length").si_value == 3000.0
+    kv = table([["Tag No.", "V-101"], ["Material", "CS"], ["Height", "9000 mm"]])
+    assert "equipment_height" not in {p.param for p in extract(doc(kv), DocType.CALCULATION).params}
+    assert by(extract(doc(kv), DocType.DATASHEET), "V-101", "equipment_height").si_value == 9000.0

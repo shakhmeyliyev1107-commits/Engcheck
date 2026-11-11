@@ -257,6 +257,43 @@ bosmaydi — umumiy ko‘rinish va tekshiruv vositasi.
   tahrir audit jurnaliga yoziladi.
 - **SVG yuklab olish** sxemani fayl sifatida beradi.
 
+## 3D joylashuv modeli
+
+Loyiha sahifasidagi **«3D modeldagi uskunalar»** kartasi orqali ochiladi. **«3D model yaratish»** tugmasi
+uskunalar ro‘yxati, datasheet va P&ID dagi uskunalardan soddalashtirilgan hajmiy model quradi
+(idish va kolonnalar — tik silindr, issiqlik almashtirgichlar — yotiq silindr, nasos va boshqalar — quti).
+
+Model nimaga asoslanganini har doim ochiq ko‘rsatadi:
+
+| Ma'lumot | Manba | Belgisi |
+|---|---|---|
+| Joylashuv | Intizomi «Qurilish» bo‘lgan DXF bosh rejadagi uskuna bloklari koordinatasi | «hujjatdan» |
+| Joylashuv | Bosh rejada yo‘q uskunalar — chetdagi panjarada | «taxminiy», sahnada shaffof |
+| O‘lcham | Datasheet yoki uskunalar ro‘yxatidagi diametr / balandlik / uzunlik (datasheet ustun) | «hujjatdan» yoki «qisman hujjatdan» |
+| O‘lcham | Hujjatlar bir-biriga zid | «hujjatlar zid — datasheet qiymati» |
+| O‘lcham | Topilmasa — uskuna turi bo‘yicha shartli o‘lcham | «taxminiy» |
+
+Cheklovlar (sahifada ham yozilgan):
+
+- DXF chizma birligini ishonchli aniqlab bo‘lmaydi: o‘lchami katta chizma **mm**, kichigi **m** deb olinadi — bu **taxmin**.
+- Koordinatalar bosh reja chizmasining o‘z koordinatalarida (metrga o‘tkazilgan) ko‘rsatiladi.
+- «DN 80» kabi nominal o‘lcham qobiq diametri deb olinmaydi; balandlik o‘rniga uzunlik ishlatilsa, o‘lcham «qisman hujjatdan» deb belgilanadi.
+- Balandlik belgilari va burilish burchagi hujjatlardan olinmaydi: barcha uskunalar 0 belgisida, burilishi 0°.
+- Quvurlar, konstruksiyalar va binolar chizilmaydi. Model loyiha 3D modeli (PDMS/E3D/SP3D va h.k.) o‘rnini **bosmaydi**.
+
+**Tahrirlash** («Tasdiqlash» huquqi bor foydalanuvchilar): uskunani sahnada zamin bo‘ylab sudrash yoki jadvalda
+X, Y, burilish va o‘lchamlarni son bilan kiritish (klaviatura bilan to‘liq ishlaydi), nomini o‘zgartirish, o‘chirish,
+yangi uskuna qo‘shish, **Orqaga / Oldinga**. Tahrirlar alohida qatlamda saqlanadi: hujjatlar o‘zgarmaydi,
+**«Qayta yaratish»** dan keyin ham tahrirlar joyida qoladi, hujjatlardan har bir farq sahifa pastidagi ro‘yxatda
+ko‘rsatiladi va har bir amal audit jurnaliga yoziladi. Hujjatlar o‘zgarsa, model «eskirgan» deb belgilanadi.
+
+Namunaviy bosh rejani sinash uchun:
+
+```bash
+python samples/generate_sample_project.py sample_project --plot-plan
+# sample_project_extra/GP-PLT-001_RevA.dxf — turi «Boshqa», intizomi «Qurilish» qilib yuklang
+```
+
 ## AI va bilimlar bazasi
 
 AI ixtiyoriy: usiz ham barcha qoidalar ishlaydi.
@@ -374,6 +411,6 @@ docs/superpowers/   spetsifikatsiya va amalga oshirish rejasi
 
 | Imkoniyat | Sikl |
 |---|---|
-| 3D joylashuv modeli va uni tahrirlash | 5 |
+| 3D modelda quvurlar, balandlik belgilari, konstruksiyalar | rejalashtirilmagan |
 | Yuklangan fayllarni diskda shifrlash, kod imzolash, avtomatik yangilanish | rejalashtirilmagan |
 | OCR (skanerlangan PDF) | rejalashtirilmagan |

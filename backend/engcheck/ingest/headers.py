@@ -27,6 +27,9 @@ _SYNONYMS: dict[str, list[str]] = {
     # faqat quvurlar ro'yxatida hisobga olinadi (extract.py).
     "line_from": ["from", "from equipment", "qayerdan", "откуда"],
     "line_to": ["to", "to equipment", "qayerga", "куда"],
+    "equipment_height": ["height", "overall height", "tangent to tangent", "t/t", "tl-tl", "balandlik", "balandligi",
+                         "высота"],
+    "equipment_length": ["length", "overall length", "uzunlik", "uzunligi", "длина"],
     "revision": ["revision", "rev", "reviziya", "ревизия"],
     "doc_number": ["document no", "doc no", "document number", "hujjat raqami", "номер документа"],
 }

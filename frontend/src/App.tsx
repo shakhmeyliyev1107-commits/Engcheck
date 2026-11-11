@@ -9,6 +9,7 @@ import { DocumentView } from "./pages/DocumentView";
 import { FindingDetailPage } from "./pages/FindingDetail";
 import { Findings } from "./pages/Findings";
 import { Kb } from "./pages/Kb";
+import { Layout3dPage } from "./pages/Layout3d";
 import { Login } from "./pages/Login";
 import { ProjectPage } from "./pages/Project";
 import { Projects } from "./pages/Projects";
@@ -99,6 +100,7 @@ export function App() {
               <Route path="/projects/:id" element={<ProjectPage />} />
               <Route path="/projects/:id/findings" element={<Findings />} />
               <Route path="/projects/:id/diagram" element={<DiagramPage />} />
+              <Route path="/projects/:id/layout3d" element={<Layout3dPage />} />
               <Route path="/findings/:id" element={<FindingDetailPage />} />
               <Route path="/documents/:id" element={<DocumentView />} />
               <Route path="/kb" element={<Kb />} />
