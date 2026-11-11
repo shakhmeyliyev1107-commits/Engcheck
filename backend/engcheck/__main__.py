@@ -3,8 +3,10 @@ Bazani shifrlash:  python -m engcheck encrypt-db [--data-dir D]
 """
 import argparse
 import json
+import os
 import socket
 import sys
+from pathlib import Path
 
 import uvicorn
 
@@ -46,7 +48,8 @@ def main(argv: list[str] | None = None) -> int:
     if settings.port == 0:
         settings.port = _free_port(settings.host)
     try:
-        app = create_app(settings)
+        dist = os.environ.get("ENGCHECK_FRONTEND_DIST")   # yig'ilgan ilovada interfeys fayllari joyi
+        app = create_app(settings, Path(dist)) if dist else create_app(settings)
     except dbcrypt.DatabaseLocked as exc:
         print(json.dumps({"event": "error", "code": "database_locked", "detail": str(exc)}), flush=True)
         return 2
